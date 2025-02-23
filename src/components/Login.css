@@ -1,0 +1,58 @@
+.login-container {
+    background-color: white;
+    color: rgb(41, 44, 88);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+form {
+    background-color: white;
+    padding: 50px;
+    width: 300px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgb(41, 44, 88);
+    color: rgb(41, 44, 88);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    width: 30%;
+    background-color: white;
+    color: rgb(41, 44, 88);
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    margin: 0 10px; /* Add margin to increase space between buttons */
+}
+
+button:hover {
+    background-color: rgb(11, 8, 44);
+    color: white;
+}
+
+.submitbuttons {
+    width: 100%; /* Adjust width to accommodate the margin */
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}

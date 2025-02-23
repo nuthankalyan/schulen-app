@@ -1,0 +1,75 @@
+.main-container {
+    display: flex;
+    height: 100vh;
+    background-color: white; /* Change background to white */
+}
+
+.main_elements {
+    top: 10%;
+    width: 200px; /* Set a fixed width for the sidebar */
+    background-color: white; /* Change sidebar background to white */
+    color: rgb(41, 44, 88); /* Change text color to rgb(41, 44, 88) */
+    padding-top: 90px;
+    display: flex;
+    flex-direction: column; /* Align items vertically */
+    position: fixed; /* Fix the sidebar to the left side */
+    top: 0;
+    left: 0;
+    height: 100%; /* Make the sidebar take the full height */
+}
+
+.main_elements ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%; /* Ensure the ul takes the full width of the sidebar */
+}
+
+.main_elements ul li {
+    margin-bottom: 20px;
+}
+
+.main_elements ul li a,button {
+    width: 50%; /* Ensure the links take the full width of the sidebar */
+    display: block; /* Make the links block elements */
+    padding: 10px;
+    color: rgb(41, 44, 88); /* Change text color to rgb(41, 44, 88) */
+    text-decoration: none;
+    font-size: 0.8em; /* Adjusted font size for better visibility */
+    position: relative; /* Required for the pseudo-element */
+    transition: color 0.3s;
+    outline: none; /* Remove the outline border */
+    border: none; /* Remove any border */
+    background-color: transparent; /* Ensure background is transparent */
+}
+
+.main_elements ul li a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    display: block;
+    bottom: 0;
+    left: 0;
+    background: rgb(41, 44, 88); /* Change underline color to rgb(41, 44, 88) */
+    transition: width 0.3s ease;
+    -webkit-transition: width 0.3s ease;
+}
+
+.main_elements ul li a:hover {
+    width: 50%;
+    color: rgb(41, 44, 88);
+    background-color: transparent; /* Ensure background remains transparent on hover */
+}
+
+.main_elements ul li a:hover::after {
+    width: 50%;
+    
+}
+
+.content {
+    margin-left: 220px; /* Add margin to the left to make space for the sidebar */
+    flex-grow: 1;
+    padding: 20px;
+    color: rgb(41, 44, 88); /* Change text color to rgb(41, 44, 88) */
+}

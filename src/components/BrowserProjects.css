@@ -1,0 +1,182 @@
+.main-container {
+    display: flex;
+    height: 100vh;
+    background-color: white;
+}
+
+.main_elements {
+    top: 10%;
+    width: 200px; /* Set a fixed width for the sidebar */
+    background-color: white;
+    color: rgb(41, 44, 88);
+    padding-top: 90px;
+    display: flex;
+    flex-direction: column; /* Align items vertically */
+    position: fixed; /* Fix the sidebar to the left side */
+    top: 0;
+    left: 0;
+    height: 100%; /* Make the sidebar take the full height */
+}
+
+.main_elements ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%; /* Ensure the ul takes the full width of the sidebar */
+}
+
+.main_elements ul li {
+    margin-bottom: 20px;
+}
+
+.main_elements ul li a {
+    display: block; /* Make the links block elements */
+    padding: 10px;
+    color: rgb(41, 44, 88);
+    text-decoration: none;
+    font-size: 0.8em; /* Adjusted font size for better visibility */
+    position: relative; /* Required for the pseudo-element */
+    transition: color 0.3s, background-color 0.3s;
+    outline: none; /* Remove the outline border */
+    border: none; /* Remove any border */
+    background-color: transparent; /* Ensure background is transparent */
+}
+
+.main_elements ul li a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    display: block;
+    bottom: 0;
+    left: 0;
+    background: rgb(41, 44, 88);
+    transition: width 0.3s ease;
+    -webkit-transition: width 0.3s ease;
+}
+
+.main_elements ul li a:hover::after {
+    width: 100%;
+}
+
+.content {
+    margin-left: 220px; /* Add margin to the left to make space for the sidebar */
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.content button{
+    margin-bottom: 2%;
+}
+.project-form {
+    margin-bottom: 20px;
+}
+
+.project-form button{
+    width: 40%;
+    margin : 4%;
+}
+.project-form .form-group {
+    margin-bottom: 15px;
+}
+
+.project-form label {
+    display: block;
+    margin-bottom: 5px;
+    color: rgb(41, 44, 88);
+    font-weight:600 ;
+}
+
+.project-form textarea {
+    color: rgb(41, 44, 88);
+    width: 100%;
+    padding: 8px;
+    border: 1px solid rgb(41, 44, 88);
+    border-radius: 5px;
+}
+
+.project-form button {
+    background-color: white;
+    color: rgb(41, 44, 88);
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.project-form button:hover {
+    background-color: rgb(41, 44, 88);
+    color: white;
+}
+
+.project-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.project-card {
+    background-color: rgb(41, 44, 88);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px white;
+    width: calc(33.333% - 20px); /* Three cards per row with gap */
+    box-sizing: border-box;
+}
+
+.modal-open{
+    overflow: hidden;
+}
+.modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    width: 400px;
+    max-width: 90%;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+}
+
+.project-card button {
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    margin-top: 10px;
+}
+
+.project-card button:hover {
+    background-color: darkred;
+}
+
+.noprojmsg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: rgb(41, 44, 88);
+    font-size: 1.5em;
+    font-weight: bold;
+    height: 100%; /* Full height to center vertically */
+    width: 100%; /* Full width to center horizontally */
+    text-align: center; /* Center text */
+}

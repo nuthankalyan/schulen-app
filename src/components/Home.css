@@ -1,0 +1,43 @@
+.home-container {
+    background-color: rgb(255, 255, 255);
+    color: rgb(41, 44, 88);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+nav {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 10px;
+}
+
+nav ul li a {
+    font-weight: 600;
+    color: rgb(41, 44, 88);
+    text-decoration: none;
+    font-size: 0.8em;
+    padding: 4px 13px;
+    border: 1px solid rgb(41, 44, 88);
+    border-radius: 10px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+nav ul li a:hover {
+    background-color: rgb(41, 44, 88);;
+    color: white;
+}

@@ -1,24 +1,27 @@
-import logo from './logo.svg';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import { Home } from './components/Home';
+import { About } from './components/About';
+import { Login } from './components/Login';
+import { Signup } from './components/Signup';
+import { Main } from './components/Main';
+import { BrowseProjects } from './components/BrowserProjects';
+
+const PrivateRoute = ({ element: Component, ...rest }) => {
+  const isAuthenticated = !!localStorage.getItem('token');
+  return isAuthenticated ? <Component {...rest} /> : <Navigate to="/login" />;
+};
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/About" element={<About />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/main" element={<PrivateRoute element={Main} />} />
+      <Route path="/main/browseprojects" element={<PrivateRoute element={BrowseProjects} />} />
+    </Routes>
   );
 }
 
