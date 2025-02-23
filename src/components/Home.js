@@ -10,7 +10,7 @@ export const Home = () => {
                 </ul>
             </nav>
             <div>
-                Home Page
+                Home Page!!
             </div>
         </div>
     )
