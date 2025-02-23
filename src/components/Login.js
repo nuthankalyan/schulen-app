@@ -9,7 +9,7 @@ export const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-
+        console.log(username, password);
         const response = await fetch('http://localhost:5000/login', {
             method: 'POST',
             headers: {

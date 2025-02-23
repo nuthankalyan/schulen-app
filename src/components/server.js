@@ -98,9 +98,10 @@ app.post('/login', async (req, res) => {
     if (!isMatch) {
         return res.status(400).json({ message: 'Invalid username or password' });
     }
-
+    console.log(username,password);
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, message: 'Login successful' });
+    
 });
 
 app.listen(PORT, () => {
