@@ -19,6 +19,7 @@
 }
 
 .main_elements ul {
+    
     list-style-type: none;
     padding: 0;
     margin: 0;
@@ -60,20 +61,25 @@
 }
 
 .content {
+    
     margin-left: 220px; /* Add margin to the left to make space for the sidebar */
     flex-grow: 1;
-    padding: 20px;
+    padding: 30px;
 }
 
 .content button{
+    width: 30%;
     margin-bottom: 2%;
 }
 .project-form {
+    width: 80%;
     margin-bottom: 20px;
 }
 
 .project-form button{
-    width: 40%;
+    display: inline-block;
+    width: 30%;
+    max-width: 100%;
     margin : 4%;
 }
 .project-form .form-group {
@@ -116,21 +122,11 @@
     gap: 20px;
 }
 
-.project-card {
-    background-color: rgb(41, 44, 88);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px white;
-    width: calc(33.333% - 20px); /* Three cards per row with gap */
-    box-sizing: border-box;
-}
-
 .modal-open{
     overflow: hidden;
 }
 .modal {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     right: auto;
@@ -141,7 +137,8 @@
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
-    width: 400px;
+    width: 500px;
+    z-index: 1001;
     max-width: 90%;
 }
 
@@ -152,21 +149,7 @@
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.75);
-}
-
-.project-card button {
-    background-color: red;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-    margin-top: 10px;
-}
-
-.project-card button:hover {
-    background-color: darkred;
+    z-index: 1000;
 }
 
 .noprojmsg {
@@ -179,4 +162,120 @@
     height: 100%; /* Full height to center vertically */
     width: 100%; /* Full width to center horizontally */
     text-align: center; /* Center text */
+}
+.project-card {
+    background-color: rgb(41, 44, 88);
+    position: relative;
+    padding: 10px 20px; /* Adjusted padding to reduce space above the title */
+    color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s;
+    width: 300px; /* Fixed width */
+    height: 260px; /* Fixed height */
+}
+
+.project-card:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.project-card .options {
+    position: absolute;
+    top: 1px;
+    right: 0.5px;
+    display: none;
+}
+
+.project-card:hover .options {
+    display: block;
+}
+
+.options-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: white;
+}
+
+.options-button:hover {
+    background-color: transparent;
+}
+.options-menu {
+    display: none;
+    position: absolute;
+    top: 35px;
+    right: 0; /* Position the menu relative to the right side of the button */
+    background-color: none;
+    border-radius: 5px;
+    z-index: 1;
+    font-size: 12px;
+    
+}
+
+.options-button:focus + .options-menu,
+.options-menu:hover {
+    display: block;
+}
+
+.options-menu button {
+    
+    width: 100%;
+    padding: 7px;
+    border: none;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+}
+
+.options-menu button:hover {
+    background-color: #f0f0f0;
+}
+
+#projdelete:hover {
+    color: white;
+    background-color: rgb(231, 83, 83);
+}
+
+
+.view-project-button {
+    font-size: small;
+    position: absolute;
+    bottom: 1px;
+    right: 10px;
+    
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.view-project-button:hover {
+    background-color: rgb(244, 244, 244);
+    color: rgb(41, 44, 88);
+}
+.status-box {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.status-open {
+    background-color: green;
+}
+
+.status-closed {
+    background-color: red;
+}
+
+.status-inprogress {
+    background-color: gray;
 }

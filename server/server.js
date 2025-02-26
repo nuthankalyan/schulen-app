@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const projectsRouter = require('./routes/projects');
+const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,56 +18,6 @@ mongoose.connect('mongodb://localhost:27017/schulen_app', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 });
-
-const ProjectSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    deadline: { type: String, required: true },
-});
-
-const Project = mongoose.model('Project', ProjectSchema);
-
-app.get('/browseprojects', async (req, res) => {
-    try {
-        const projects = await Project.find();
-        res.json(projects);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching projects', error });
-    }
-});
-
-app.post('/browseprojects', async (req, res) => {
-    const { title, description, deadline } = req.body;
-
-    try {
-        const newProject = new Project({ title, description, deadline });
-        await newProject.save();
-        res.status(201).json(newProject);
-    } catch (error) {
-        res.status(400).json({ message: 'Error creating project', error });
-    }
-});
-
-app.delete('/browseprojects/:id', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const project = await Project.findByIdAndDelete(id);
-        if (!project) {
-            return res.status(404).json({ message: 'Project not found' });
-        }
-        res.status(200).json({ message: 'Project deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting project', error });
-    }
-});
-
-const UserSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-});
-
-const User = mongoose.model('User', UserSchema);
 
 // Signup route
 app.post('/signup', async (req, res) => {
@@ -98,11 +50,13 @@ app.post('/login', async (req, res) => {
     if (!isMatch) {
         return res.status(400).json({ message: 'Invalid username or password' });
     }
-    console.log(username,password);
+
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, message: 'Login successful' });
-    
 });
+
+// Use projects router
+app.use('/browseprojects', projectsRouter);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

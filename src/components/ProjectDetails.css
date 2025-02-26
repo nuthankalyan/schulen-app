@@ -1,0 +1,17 @@
+.project-details-container {
+    padding: 20px;
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+.project-details-container h1 {
+    margin-bottom: 20px;
+}
+
+.project-details-container p {
+    margin-bottom: 10px;
+}

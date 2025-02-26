@@ -21,6 +21,9 @@ export const Login = () => {
         if (response.ok) {
             const data = await response.json();
             localStorage.setItem('token', data.token);
+            localStorage.setItem('username', username);
+            const user1 = localStorage.getItem('username');
+            console.log(user1);
             navigate('/main');
         } else {
             const data = await response.json();

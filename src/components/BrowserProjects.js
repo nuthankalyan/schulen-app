@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
-import './Main.css';
 import './BrowserProjects.css';
 import { useNavigate } from 'react-router-dom';
-
+import {Header} from './Header';
 Modal.setAppElement('#root'); // Set the root element for accessibility
 
 export const BrowseProjects = () => {
@@ -11,9 +10,12 @@ export const BrowseProjects = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [deadline, setDeadline] = useState('');
+    const [domain, setDomain] = useState('Data Science');
+    const [status, setStatus] = useState('Open');
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const navigate = useNavigate();
-
+    const userId = localStorage.getItem('userId'); // Assuming userId is stored in localStorage
+    console.log(userId)
     // Load projects from the backend when the component mounts
     useEffect(() => {
         const fetchProjects = async () => {
@@ -34,13 +36,15 @@ export const BrowseProjects = () => {
 
     const handleAddProject = async (e) => {
         e.preventDefault();
-        const newProject = { title, description, deadline };
+        const newProject = { title, description, deadline, domain, status };
+        const token = localStorage.getItem('token');
 
         try {
             const response = await fetch('http://localhost:5000/browseprojects', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': token,
                 },
                 body: JSON.stringify(newProject),
             });
@@ -51,6 +55,8 @@ export const BrowseProjects = () => {
                 setTitle('');
                 setDescription('');
                 setDeadline('');
+                setDomain('Data Science');
+                setStatus('Open');
                 setModalIsOpen(false); // Close the modal after adding the project
                 document.body.classList.remove('modal-open'); // Remove class from body
             } else {
@@ -63,10 +69,14 @@ export const BrowseProjects = () => {
     };
 
     const handleDeleteProject = async (projectId) => {
+        const token = localStorage.getItem('token');
         if (window.confirm('Are you sure you want to delete this project?')) {
             try {
                 const response = await fetch(`http://localhost:5000/browseprojects/${projectId}`, {
                     method: 'DELETE',
+                    headers: {
+                        'Authorization': token,
+                    },
                 });
 
                 if (response.ok) {
@@ -78,6 +88,31 @@ export const BrowseProjects = () => {
             } catch (error) {
                 console.error('Error deleting project:', error);
             }
+        }
+    };
+
+    const handleChangeStatus = async (projectId, newStatus) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`http://localhost:5000/browseprojects/${projectId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token,
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+
+            if (response.ok) {
+                setProjects(projects.map(project => 
+                    project._id === projectId ? { ...project, status: newStatus } : project
+                ));
+            } else {
+                const data = await response.json();
+                alert(data.message);
+            }
+        } catch (error) {
+            console.error('Error changing project status:', error);
         }
     };
 
@@ -93,11 +128,13 @@ export const BrowseProjects = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('userId'); // Remove userId from localStorage
         navigate('/login');
     };
 
     return (
         <div className="main-container">
+            <Header />
             <nav className="main_elements">
                 <ul>
                     <li><a href="/main/browseprojects">Browse Projects</a></li>
@@ -144,6 +181,31 @@ export const BrowseProjects = () => {
                                 onChange={(e) => setDeadline(e.target.value)}
                             />
                         </div>
+                        <div className="form-group">
+                            <label htmlFor="domain">Domain:</label>
+                            <select
+                                id="domain"
+                                value={domain}
+                                onChange={(e) => setDomain(e.target.value)}
+                            >
+                                <option value="Data Science">Data Science</option>
+                                <option value="Web Development">Web Development</option>
+                                <option value="Blockchain">Blockchain</option>
+                                <option value="AIML">AIML</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="status">Project Status:</label>
+                            <select
+                                id="status"
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                            >
+                                <option value="Open">Open</option>
+                                <option value="Closed">Closed</option>
+                                <option value="In Progress">In Progress</option>
+                            </select>
+                        </div>
                         <button type="submit">Add Project</button>
                         <button type="button" onClick={closeModal}>Cancel</button>
                     </form>
@@ -154,10 +216,38 @@ export const BrowseProjects = () => {
                     ) : (
                         projects.map((project, index) => (
                             <div key={index} className="project-card">
-                                <h2>{project.title}</h2>
+                                <p id="browseprojectcardtitle">{project.title}</p>
+                                <div className={`status-box ${project.status === 'Open' ? 'status-open' : project.status === 'Closed' ? 'status-closed' : 'status-inprogress'}`}>
+                                    {project.status}
+                                </div>
                                 <p>{project.description}</p>
                                 <p><strong>Deadline:</strong> {project.deadline}</p>
-                                <button onClick={() => handleDeleteProject(project._id)}>Delete</button>
+                                <p><strong>Domain:</strong> {project.domain}</p>
+                                <div className="options" onClick={(e) => e.stopPropagation()}>
+                                    <button className="options-button" onClick={(e) => {
+                                        const optionsMenu = e.target.nextElementSibling;
+                                        optionsMenu.style.display = optionsMenu.style.display === 'block' ? 'none' : 'block';
+                                    }}>⋮</button>
+                                    <div className="options-menu">
+                                        {project.userId === userId || (
+                                            <>
+                                                <button onClick={() => handleDeleteProject(project._id)} id="projdelete">Delete</button>
+                                                {project.status !== 'Open' && (
+                                                    <button onClick={() => handleChangeStatus(project._id, 'Open')}>Open</button>
+                                                )}
+                                                {project.status !== 'In Progress' && (
+                                                    <button onClick={() => handleChangeStatus(project._id, 'In Progress')}>In Progress</button>
+                                                )}
+                                                {project.status !== 'Closed' && (
+                                                    <button onClick={() => handleChangeStatus(project._id, 'Closed')}>Close</button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                <button className="view-project-button" onClick={() => navigate(`/main/browseprojects/${project._id}`)}>
+                                    View Project
+                                </button>
                             </div>
                         ))
                     )}
