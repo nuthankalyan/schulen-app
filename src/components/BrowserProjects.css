@@ -166,7 +166,7 @@
 .project-card {
     background-color: rgb(41, 44, 88);
     position: relative;
-    padding: 10px 20px; /* Adjusted padding to reduce space above the title */
+    padding: 1px 20px; /* Adjusted padding to reduce space above the title */
     color: white;
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -220,7 +220,7 @@
 }
 
 .options-menu button {
-    
+    font-weight: bold;
     width: 100%;
     padding: 7px;
     border: none;
@@ -230,7 +230,9 @@
 }
 
 .options-menu button:hover {
+    color: rgb(41, 44, 88);
     background-color: #f0f0f0;
+
 }
 
 #projdelete:hover {
@@ -251,7 +253,7 @@
     border-radius: 5px;
     padding: 5px 10px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 530;
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -263,6 +265,7 @@
     display: inline-block;
     padding: 5px 10px;
     border-radius: 5px;
+    font-size: 0.8em;
     font-weight: bold;
     color: white;
     margin-bottom: 10px;
@@ -278,4 +281,9 @@
 
 .status-inprogress {
     background-color: gray;
+}
+#browseprojectcardtitle{
+    font-size: 1.5em;
+    font-weight: 400;
+    
 }

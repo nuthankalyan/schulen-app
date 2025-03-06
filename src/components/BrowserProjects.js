@@ -220,7 +220,7 @@ export const BrowseProjects = () => {
                                 <div className={`status-box ${project.status === 'Open' ? 'status-open' : project.status === 'Closed' ? 'status-closed' : 'status-inprogress'}`}>
                                     {project.status}
                                 </div>
-                                <p>{project.description}</p>
+                                
                                 <p><strong>Deadline:</strong> {project.deadline}</p>
                                 <p><strong>Domain:</strong> {project.domain}</p>
                                 <div className="options" onClick={(e) => e.stopPropagation()}>
