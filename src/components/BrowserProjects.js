@@ -3,6 +3,9 @@ import Modal from 'react-modal';
 import './BrowserProjects.css';
 import { useNavigate } from 'react-router-dom';
 import {Header} from './Header';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faProjectDiagram, faFolderOpen, faEnvelope, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+
 Modal.setAppElement('#root'); // Set the root element for accessibility
 
 export const BrowseProjects = () => {
@@ -137,15 +140,35 @@ export const BrowseProjects = () => {
             <Header />
             <nav className="main_elements">
                 <ul>
-                    <li><a href="/main/browseprojects">Browse Projects</a></li>
-                    <li><a href="/my-projects">My Projects</a></li>
-                    <li><a href="/messages">Messages</a></li>
-                    <li><button onClick={handleLogout}>Logout</button></li>
+                    <li>
+                        <a href="/main/browseprojects">
+                            <FontAwesomeIcon icon={faProjectDiagram} className="nav-icon" />
+                            <span>Browse Projects</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/my-projects">
+                            <FontAwesomeIcon icon={faFolderOpen} className="nav-icon" />
+                            <span>My Projects</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/messages">
+                            <FontAwesomeIcon icon={faEnvelope} className="nav-icon" />
+                            <span>Messages</span>
+                        </a>
+                    </li>
+                    <li>
+                        <button onClick={handleLogout}>
+                            <FontAwesomeIcon icon={faSignOutAlt} className="nav-icon" />
+                            <span>Logout</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
             <div className="content">
                 <h1>Browse Projects</h1>
-                <button onClick={openModal}>Create a Project</button>
+                <button onClick={openModal} id = "create-project-button">Create a Project</button>
                 <Modal
                     isOpen={modalIsOpen}
                     onRequestClose={closeModal}

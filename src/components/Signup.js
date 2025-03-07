@@ -57,7 +57,7 @@ export const Signup = () => {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                 </div>
-                <button type="submit">Signup</button>
+                <button type="submit" id = "signup_button">Signup</button>
             </form>
         </div>
     );

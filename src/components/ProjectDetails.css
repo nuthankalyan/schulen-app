@@ -1,17 +1,173 @@
 .project-details-container {
-    padding: 20px;
+    padding: 30px;
     background-color: white;
     color: rgb(41, 44, 88);
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    max-width: 800px;
-    margin: 20px auto;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    max-width: 70%;
+    margin: 3% auto;
+    position: relative;
+    font-family: 'Roboto', sans-serif;
 }
 
-.project-details-container h1 {
+#project_title {
+    margin-bottom: 20px;
+    font-weight: 700;
+    font-size: 2.5em;
+}
+
+.status-box_p {
+    position: absolute;
+    top: 35px;
+    right: 25px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    font-size: 1em;
+}
+
+.status-box_p:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    font-weight: 600;
+}
+
+.status-open_p {
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+    background-color: green;
+}
+
+.status-closed_p {
+    color: white;
+    font-weight: bold;
+    background-color: red;
+}
+
+.status-inprogress_p {
+    color: white;
+    font-weight: bold;
+    background-color: gray;
+}
+
+#project_user {
+    color: rgb(140, 134, 134);
+    font-weight: 500;
+    font-size: 1.2em;
+    margin-top: 10px;
+}
+
+#project_description_title {
+    margin-top: 8%;
+    font-weight: 600;
+    font-size: 1.5em;
+}
+
+#project_description {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400;
+    white-space: pre-line;
+    color: rgb(41, 44, 88);
+    font-size: 1em;
+    margin-top: 10px;
+    line-height: 1.6;
+}
+
+#project_domain_title, #project_description_title {
+    font-weight: 600;
+    font-size: 1.5em;
+    margin-top: 3%;
+}
+
+#project_domain {
+    width: fit-content;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 600;
+    white-space: pre-line;
+    color: white;
+    font-size: 1em;
+    padding: 10px 15px; /* Add padding to create space inside the box */
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); /* Add a shadow effect */
+    background-color: rgb(116, 122, 206); /* Add a background color */
+    border-radius: 10px; /* Add border radius for rounded corners */
+    margin-top: 10px; /* Add margin to create space above the box */
+}
+
+#project_domain:hover {
+    transition: 0.5s;
+    scale: 1.05;
+}
+
+.enroll-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
     margin-bottom: 20px;
 }
 
-.project-details-container p {
-    margin-bottom: 10px;
+.enroll-button {
+    width: fit-content;
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: 2px solid rgb(41, 44, 88);
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 8px rgba(41, 44, 88, 0.1);
+}
+
+.enroll-button:hover:not(:disabled) {
+    background-color: rgb(41, 44, 88);
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(41, 44, 88, 0.2);
+}
+
+.enroll-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(41, 44, 88, 0.1);
+}
+
+.enrolled-button {
+    background-color: #4CAF50 !important;
+    color: white !important;
+    border-color: #4CAF50 !important;
+    cursor: default !important;
+}
+
+.owner-button {
+    background-color: #2196F3 !important;
+    color: white !important;
+    border-color: #2196F3 !important;
+    cursor: default !important;
+}
+
+.full-button {
+    background-color: #f44336 !important;
+    color: white !important;
+    border-color: #f44336 !important;
+    cursor: default !important;
+}
+
+.enroll-button:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.enroll-icon {
+    font-size: 1.2em;
+    transition: transform 0.3s ease;
+}
+
+.enroll-button:hover:not(:disabled) .enroll-icon {
+    transform: scale(1.2);
 }

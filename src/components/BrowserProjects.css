@@ -5,71 +5,115 @@
 }
 
 .main_elements {
-    top: 10%;
-    width: 200px; /* Set a fixed width for the sidebar */
-    background-color: white;
-    color: rgb(41, 44, 88);
-    padding-top: 90px;
-    display: flex;
-    flex-direction: column; /* Align items vertically */
-    position: fixed; /* Fix the sidebar to the left side */
-    top: 0;
+    background-color: rgb(41, 44, 88);
+    width: 200px; /* Increase width to accommodate text */
+    position: fixed;
     left: 0;
-    height: 100%; /* Make the sidebar take the full height */
+    height: 100%;
+    transition: width 0.3s ease;
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
+}
+
+.main_elements ul li button{
+    
+    color: rgb(41, 44, 88);
+    font-weight: bold;
+
+}
+.main_elements ul li button:hover{
+    
+    color: white;
+    font-weight: bold;   
 }
 
 .main_elements ul {
-    
-    list-style-type: none;
     padding: 0;
     margin: 0;
-    width: 100%; /* Ensure the ul takes the full width of the sidebar */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .main_elements ul li {
-    margin-bottom: 20px;
-}
-
-.main_elements ul li a {
-    display: block; /* Make the links block elements */
-    padding: 10px;
-    color: rgb(41, 44, 88);
-    text-decoration: none;
-    font-size: 0.8em; /* Adjusted font size for better visibility */
-    position: relative; /* Required for the pseudo-element */
-    transition: color 0.3s, background-color 0.3s;
-    outline: none; /* Remove the outline border */
-    border: none; /* Remove any border */
-    background-color: transparent; /* Ensure background is transparent */
-}
-
-.main_elements ul li a::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    display: block;
-    bottom: 0;
-    left: 0;
-    background: rgb(41, 44, 88);
-    transition: width 0.3s ease;
-    -webkit-transition: width 0.3s ease;
-}
-
-.main_elements ul li a:hover::after {
+    margin-bottom: 5px;
     width: 100%;
 }
 
+.main_elements ul li a,
+.main_elements ul li button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.85em;
+    position: relative;
+    transform: translateX(0);
+    transition: all 0.3s ease;
+    outline: none;
+    border: none;
+    background-color: transparent;
+    width: 100%;
+    cursor: pointer;
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+.nav-icon {
+    font-size: 1.2em;
+    min-width: 20px; /* Use min-width instead of width */
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+
+.main_elements ul li a:hover .nav-icon,
+.main_elements ul li button:hover .nav-icon {
+    transform: scale(1.03);
+}
+
+.main_elements ul li a:hover,
+.main_elements ul li button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px); /* Reduce the transform distance */
+    padding-left: 25px; /* Add a bit more padding on hover */
+}
+
+/* Ensure the span inside nav items doesn't wrap */
+.main_elements ul li a span,
+.main_elements ul li button span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .content {
-    
-    margin-left: 220px; /* Add margin to the left to make space for the sidebar */
-    flex-grow: 1;
-    padding: 30px;
+    margin-left: 200px;
+    padding: 20px;
+    width: calc(100% - 200px);
 }
 
 .content button{
-    width: 30%;
+    color: rgb(41, 44, 88);
+    font-weight: bold;
     margin-bottom: 2%;
+}
+
+#create-project-button{
+    transition: background-color 0.3s, color 0.3s;
+    box-shadow: 0 0 5px rgb(41, 44, 88);
+    width: fit-content;
+    transform: scale(1);
+    transition: transform 0.2s ease, background-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+#create-project-button:hover{
+    width: fit-content;
+    background-color: rgb(41, 44, 88);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(41, 44, 88, 0.3);
 }
 .project-form {
     width: 80%;
@@ -81,6 +125,8 @@
     width: 30%;
     max-width: 100%;
     margin : 4%;
+    transform: scale(1);
+    transition: transform 0.2s ease, background-color 0.3s, color 0.3s;
 }
 .project-form .form-group {
     margin-bottom: 15px;
@@ -99,6 +145,13 @@
     padding: 8px;
     border: 1px solid rgb(41, 44, 88);
     border-radius: 5px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.project-form textarea:focus {
+    outline: none;
+    border-color: rgb(41, 44, 88);
+    box-shadow: 0 0 5px rgba(41, 44, 88, 0.3);
 }
 
 .project-form button {
@@ -109,11 +162,14 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s;
+    
+    box-shadow: 0 0 5px rgb(41, 44, 88);
 }
 
 .project-form button:hover {
     background-color: rgb(41, 44, 88);
     color: white;
+    transform: scale(1.05);
 }
 
 .project-cards {
@@ -140,6 +196,19 @@
     width: 500px;
     z-index: 1001;
     max-width: 90%;
+    opacity: 0;
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
 }
 
 .overlay {
@@ -150,6 +219,13 @@
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.75);
     z-index: 1000;
+    opacity: 0;
+    animation: fadeInOverlay 0.3s ease forwards;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .noprojmsg {
@@ -174,10 +250,13 @@
     transition: box-shadow 0.3s;
     width: 300px; /* Fixed width */
     height: 260px; /* Fixed height */
+    transform: translateY(0);
+    transition: transform 0.3s ease, box-shadow 0.3s;
 }
 
 .project-card:hover {
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(41, 44, 88, 0.2);
 }
 
 .project-card .options {
@@ -211,12 +290,16 @@
     border-radius: 5px;
     z-index: 1;
     font-size: 12px;
-    
+    transform: translateY(-10px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .options-button:focus + .options-menu,
 .options-menu:hover {
     display: block;
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .options-menu button {
@@ -246,7 +329,7 @@
     position: absolute;
     bottom: 1px;
     right: 10px;
-    
+    width: fit-content;
     background-color: white;
     color: rgb(41, 44, 88);
     border: none;
@@ -255,20 +338,30 @@
     cursor: pointer;
     font-weight: 530;
     transition: background-color 0.3s, color 0.3s;
+    transform: scale(1);
+    transition: transform 0.2s ease, background-color 0.3s, color 0.3s;
 }
 
 .view-project-button:hover {
     background-color: rgb(244, 244, 244);
     color: rgb(41, 44, 88);
+    transform: scale(1.05);
 }
 .status-box {
-    display: inline-block;
     padding: 5px 10px;
+    width: fit-content;
     border-radius: 5px;
+    display: block;
+    margin-top: 10px;
     font-size: 0.8em;
     font-weight: bold;
     color: white;
-    margin-bottom: 10px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.status-box:hover {
+    transform: scale(1.05);
 }
 
 .status-open {

@@ -7,6 +7,11 @@ const ProjectSchema = new mongoose.Schema({
     domain: { type: String, required: true },
     status: { type: String, required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    enrolledUsers: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User' 
+    }],
+    maxTeamSize: { type: Number, default: 4 }
 });
 
 const Project = mongoose.model('Project', ProjectSchema);

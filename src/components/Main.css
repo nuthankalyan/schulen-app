@@ -7,7 +7,7 @@
 .main_elements {
     top: 10%;
     width: 200px; /* Set a fixed width for the sidebar */
-    background-color: white; /* Change sidebar background to white */
+    background-color: rgb(41, 44, 88); /* Change sidebar background to white */
     color: rgb(41, 44, 88); /* Change text color to rgb(41, 44, 88) */
     padding-top: 90px;
     display: flex;
@@ -33,7 +33,7 @@
     width: 50%; /* Ensure the links take the full width of the sidebar */
     display: block; /* Make the links block elements */
     padding: 10px;
-    color: rgb(41, 44, 88); /* Change text color to rgb(41, 44, 88) */
+    color: white; /* Change text color to rgb(41, 44, 88) */
     text-decoration: none;
     font-size: 0.8em; /* Adjusted font size for better visibility */
     position: relative; /* Required for the pseudo-element */
@@ -51,14 +51,14 @@
     display: block;
     bottom: 0;
     left: 0;
-    background: rgb(41, 44, 88); /* Change underline color to rgb(41, 44, 88) */
+    background: white; /* Change underline color to rgb(41, 44, 88) */
     transition: width 0.3s ease;
     -webkit-transition: width 0.3s ease;
 }
 
 .main_elements ul li a:hover {
     width: 50%;
-    color: rgb(41, 44, 88);
+    color: white;
     background-color: transparent; /* Ensure background remains transparent on hover */
 }
 
