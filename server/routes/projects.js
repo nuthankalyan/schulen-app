@@ -87,7 +87,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 });
 
-// Enroll in a project
+// Enroll in a project (now creates a request)
 router.post('/:id/enroll', authenticate, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
@@ -115,22 +115,119 @@ router.post('/:id/enroll', authenticate, async (req, res) => {
             return res.status(400).json({ message: 'You are already enrolled in this project' });
         }
 
+        // Check if user already has a pending request
+        const existingRequest = project.enrollmentRequests.find(
+            request => request.userId.toString() === userId
+        );
+        
+        if (existingRequest) {
+            return res.status(400).json({ message: 'You already have a pending enrollment request' });
+        }
+
         // Check if team is full
         if (project.enrolledUsers.length >= project.maxTeamSize) {
             return res.status(400).json({ message: 'Team is full' });
         }
 
-        // Add user to enrolled users
-        project.enrolledUsers.push(userId);
+        // Add enrollment request
+        project.enrollmentRequests.push({ userId });
         await project.save();
 
         res.status(200).json({ 
-            message: 'Successfully enrolled in project',
+            message: 'Enrollment request sent successfully',
+            requestId: project.enrollmentRequests[project.enrollmentRequests.length - 1]._id
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error sending enrollment request', error });
+    }
+});
+
+// Get enrollment requests for a project (owner only)
+router.get('/:id/requests', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user is the owner
+        if (project.userId.toString() !== userId) {
+            return res.status(403).json({ message: 'Only the project owner can view enrollment requests' });
+        }
+
+        // Populate user details for each request
+        const populatedProject = await Project.findById(id).populate({
+            path: 'enrollmentRequests.userId',
+            select: 'username'
+        });
+
+        const requests = populatedProject.enrollmentRequests.map(request => ({
+            requestId: request._id,
+            userId: request.userId._id,
+            username: request.userId.username,
+            requestDate: request.requestDate
+        }));
+
+        res.status(200).json(requests);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching enrollment requests', error });
+    }
+});
+
+// Approve or reject an enrollment request
+router.patch('/:id/requests/:requestId', authenticate, async (req, res) => {
+    const { id, requestId } = req.params;
+    const { action } = req.body; // 'approve' or 'reject'
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user is the owner
+        if (project.userId.toString() !== userId) {
+            return res.status(403).json({ message: 'Only the project owner can approve or reject requests' });
+        }
+
+        // Find the request
+        const requestIndex = project.enrollmentRequests.findIndex(
+            request => request._id.toString() === requestId
+        );
+
+        if (requestIndex === -1) {
+            return res.status(404).json({ message: 'Enrollment request not found' });
+        }
+
+        const request = project.enrollmentRequests[requestIndex];
+
+        if (action === 'approve') {
+            // Check if team is full
+            if (project.enrolledUsers.length >= project.maxTeamSize) {
+                return res.status(400).json({ message: 'Team is full' });
+            }
+
+            // Add user to enrolled users
+            project.enrolledUsers.push(request.userId);
+        }
+
+        // Remove the request
+        project.enrollmentRequests.splice(requestIndex, 1);
+        await project.save();
+
+        res.status(200).json({ 
+            message: action === 'approve' ? 'Enrollment request approved' : 'Enrollment request rejected',
             enrolledUsers: project.enrolledUsers,
             isFull: project.enrolledUsers.length >= project.maxTeamSize
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error enrolling in project', error });
+        res.status(500).json({ message: 'Error processing enrollment request', error });
     }
 });
 
@@ -146,14 +243,20 @@ router.get('/:id/enrollment', authenticate, async (req, res) => {
             return res.status(404).json({ message: 'Project not found' });
         }
 
-        const isEnrolled = project.enrolledUsers.includes(userId);
+        const isEnrolled = project.enrolledUsers.some(id => id.toString() === userId);
         const isOwner = project.userId.toString() === userId;
         const isFull = project.enrolledUsers.length >= project.maxTeamSize;
+        const hasPendingRequest = project.enrollmentRequests.some(
+            request => request.userId.toString() === userId
+        );
+        const requestCount = isOwner ? project.enrollmentRequests.length : 0;
 
         res.status(200).json({
             isEnrolled,
             isOwner,
             isFull,
+            hasPendingRequest,
+            requestCount,
             enrolledCount: project.enrolledUsers.length,
             maxTeamSize: project.maxTeamSize
         });
@@ -172,6 +275,33 @@ router.get('/user/:userId', async (req, res) => {
         res.json({ username: user.username });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user', error });
+    }
+});
+
+// Get recommended projects based on domain (excluding current project and user's own projects)
+router.get('/:id/recommended', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        // Get the current project to find its domain
+        const currentProject = await Project.findById(id);
+        
+        if (!currentProject) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Find projects with the same domain, excluding the current project and user's own projects
+        const recommendedProjects = await Project.find({
+            _id: { $ne: id },
+            userId: { $ne: userId },
+            domain: currentProject.domain,
+            status: { $ne: 'Closed' } // Optionally exclude closed projects
+        }).limit(5); // Limit to 5 recommended projects
+
+        res.json(recommendedProjects);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching recommended projects', error });
     }
 });
 

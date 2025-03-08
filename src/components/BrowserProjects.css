@@ -255,6 +255,9 @@
 }
 
 .project-card:hover {
+    .options-button{
+        color: white;
+    }
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(41, 44, 88, 0.2);
 }
@@ -279,6 +282,7 @@
 }
 
 .options-button:hover {
+    color: white;
     background-color: transparent;
 }
 .options-menu {
@@ -313,16 +317,13 @@
 }
 
 .options-menu button:hover {
-    color: rgb(41, 44, 88);
-    background-color: #f0f0f0;
-
+    background-color: #f5f5f5;
 }
 
 #projdelete:hover {
     color: white;
-    background-color: rgb(231, 83, 83);
+    background-color: #dc3545;
 }
-
 
 .view-project-button {
     font-size: small;

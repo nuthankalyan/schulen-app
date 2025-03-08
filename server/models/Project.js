@@ -11,6 +11,10 @@ const ProjectSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
     }],
+    enrollmentRequests: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        requestDate: { type: Date, default: Date.now }
+    }],
     maxTeamSize: { type: Number, default: 4 }
 });
 

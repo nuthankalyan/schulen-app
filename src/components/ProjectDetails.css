@@ -1,10 +1,11 @@
 .project-details-container {
+    right: 8%;
     padding: 30px;
     background-color: white;
     color: rgb(41, 44, 88);
     border-radius: 15px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    max-width: 70%;
+    max-width: 60%;
     margin: 3% auto;
     position: relative;
     font-family: 'Roboto', sans-serif;
@@ -87,7 +88,7 @@
     font-weight: 600;
     white-space: pre-line;
     color: white;
-    font-size: 1em;
+    font-size: 0.7em;
     padding: 10px 15px; /* Add padding to create space inside the box */
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); /* Add a shadow effect */
     background-color: rgb(116, 122, 206); /* Add a background color */
@@ -114,7 +115,7 @@
     border: 2px solid rgb(41, 44, 88);
     border-radius: 8px;
     padding: 12px 30px;
-    font-size: 1.1em;
+    font-size: 0.8em;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -170,4 +171,257 @@
 
 .enroll-button:hover:not(:disabled) .enroll-icon {
     transform: scale(1.2);
+}
+
+.requests-container {
+    position: absolute;
+    top: 35px;
+    right: 110px;
+    z-index: 10;
+}
+
+.requests-button {
+    position: relative;
+    background-color: rgb(41, 44, 88);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.requests-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.requests-icon {
+    font-size: 1.2em;
+}
+
+.request-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #f44336;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.requests-panel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    left: auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 20;
+    padding: 15px;
+    animation: fadeIn 0.3s ease forwards;
+}
+
+.requests-panel h3 {
+    margin-top: 0;
+    color: rgb(41, 44, 88);
+    font-size: 1.2em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.requests-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.request-username {
+    font-weight: 500;
+    color: #333;
+}
+
+.request-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.approve-button, .reject-button {
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.approve-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.approve-button:hover:not(:disabled) {
+    background-color: #45a049;
+    transform: scale(1.1);
+}
+
+.reject-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.reject-button:hover {
+    background-color: #d32f2f;
+    transform: scale(1.1);
+}
+
+.approve-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.pending-button {
+    background-color: #FF9800 !important;
+    color: white !important;
+    border-color: #FF9800 !important;
+    cursor: default !important;
+}
+
+.recommended-projects-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.recommended-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgb(41, 44, 88);
+    font-size: 1.3em;
+    margin-bottom: 20px;
+}
+
+.recommended-icon {
+    color: rgb(41, 44, 88);
+}
+
+.recommended-projects-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 10px 0;
+    gap: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(41, 44, 88) #f0f0f0;
+}
+
+.recommended-projects-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.recommended-projects-container::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 10px;
+}
+
+.recommended-projects-container::-webkit-scrollbar-thumb {
+    background-color: rgb(41, 44, 88);
+    border-radius: 10px;
+}
+
+.recommended-project-card {
+    min-width: 250px;
+    max-width: 250px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recommended-project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.recommended-project-card h4 {
+    margin: 0 0 15px 0;
+    color: rgb(41, 44, 88);
+    font-size: 1.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: bold;
+    color: white;
+}
+
+.status-open {
+    background-color: #4CAF50;
+}
+
+.status-closed {
+    background-color: #f44336;
+}
+
+.status-in-progress {
+    background-color: #FF9800;
+}
+
+.recommended-domain {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.view-recommended-button {
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: 1px solid rgb(41, 44, 88);
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.view-recommended-button:hover {
+    background-color: rgb(41, 44, 88);
+    color: white;
 }
