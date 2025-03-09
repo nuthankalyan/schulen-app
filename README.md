@@ -68,3 +68,80 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+# Schulen App
+
+A platform for students to collaborate on projects and build their portfolios.
+
+## Deployment to Vercel
+
+This application is configured for deployment to Vercel. The following steps should be followed:
+
+1. Ensure you have the Vercel CLI installed:
+   ```
+   npm install -g vercel
+   ```
+
+2. Login to Vercel:
+   ```
+   vercel login
+   ```
+
+3. Deploy the application:
+   ```
+   vercel
+   ```
+
+## Font Awesome Configuration
+
+The application uses Font Awesome for icons. The following packages are required:
+- @fortawesome/fontawesome-svg-core
+- @fortawesome/free-solid-svg-icons
+- @fortawesome/react-fontawesome
+
+These packages are automatically installed during the build process. If you encounter any issues with icons not displaying, you can manually install them:
+
+```
+npm install --save @fortawesome/fontawesome-svg-core @fortawesome/free-solid-svg-icons @fortawesome/react-fontawesome
+```
+
+## Fallback Mechanism
+
+The application includes a fallback mechanism for Font Awesome icons in case they fail to load. This is implemented in the `src/fontawesome.js` file, which provides Unicode character alternatives for all icons used in the application.
+
+## Development
+
+To run the application locally:
+
+1. Install dependencies:
+   ```
+   npm install --legacy-peer-deps
+   ```
+
+2. Start the development server:
+   ```
+   npm start
+   ```
+
+3. Build for production:
+   ```
+   npm run build
+   ```
+
+## Troubleshooting
+
+If you encounter issues with dependencies during deployment, try the following:
+
+1. Use the `--legacy-peer-deps` flag when installing dependencies:
+   ```
+   npm install --legacy-peer-deps
+   ```
+
+2. Check the `.npmrc` file to ensure it contains the necessary configuration:
+   ```
+   legacy-peer-deps=true
+   engine-strict=false
+   save-exact=true
+   ```
+
+3. Ensure the `vercel.json` file is properly configured with the correct build and install commands.

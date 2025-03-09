@@ -1,18 +1,7 @@
 import React, { useEffect } from 'react';
 import './Home.css';
 import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faLaptopCode, 
-  faUserGraduate, 
-  faBriefcase, 
-  faChartLine, 
-  faHandshake, 
-  faArrowRight,
-  faCode,
-  faLightbulb,
-  faUsers
-} from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon, icons } from '../fontawesome';
 
 export const Home = () => {
     const navigate = useNavigate();
@@ -61,20 +50,20 @@ export const Home = () => {
                     <p className="fade-in">Connect with industry projects, build your portfolio, and get hired by top companies.</p>
                     <div className="hero-buttons fade-in">
                         <button onClick={() => navigate('/signup')} className="primary-btn">Get Started</button>
-                        <button onClick={() => navigate('/main/browseprojects')} className="secondary-btn">Browse Projects <FontAwesomeIcon icon={faArrowRight} /></button>
+                        <button onClick={() => navigate('/main/browseprojects')} className="secondary-btn">Browse Projects <FontAwesomeIcon icon={icons.faArrowRight} /></button>
                     </div>
                 </div>
                 <div className="hero-image fade-in">
                     <div className="floating-card card-1">
-                        <FontAwesomeIcon icon={faLaptopCode} />
+                        <FontAwesomeIcon icon={icons.faLaptopCode} />
                         <span>100+ Active Projects</span>
                     </div>
                     <div className="floating-card card-2">
-                        <FontAwesomeIcon icon={faUserGraduate} />
+                        <FontAwesomeIcon icon={icons.faUserGraduate} />
                         <span>500+ Students</span>
                     </div>
                     <div className="floating-card card-3">
-                        <FontAwesomeIcon icon={faBriefcase} />
+                        <FontAwesomeIcon icon={icons.faBriefcase} />
                         <span>50+ Hiring Companies</span>
                     </div>
                 </div>
@@ -85,28 +74,28 @@ export const Home = () => {
                 <div className="features-grid">
                     <div className="feature-card fade-in">
                         <div className="feature-icon">
-                            <FontAwesomeIcon icon={faCode} />
+                            <FontAwesomeIcon icon={icons.faCode} />
                         </div>
                         <h3>Join Real Projects</h3>
                         <p>Work on industry-relevant projects across various domains like Web Development, Data Science, AI/ML, and more.</p>
                     </div>
                     <div className="feature-card fade-in">
                         <div className="feature-icon">
-                            <FontAwesomeIcon icon={faLightbulb} />
+                            <FontAwesomeIcon icon={icons.faLightbulb} />
                         </div>
                         <h3>Build Your Portfolio</h3>
                         <p>Create a compelling portfolio showcasing your skills and contributions to real-world projects.</p>
                     </div>
                     <div className="feature-card fade-in">
                         <div className="feature-icon">
-                            <FontAwesomeIcon icon={faUsers} />
+                            <FontAwesomeIcon icon={icons.faUsers} />
                         </div>
                         <h3>Collaborate in Teams</h3>
                         <p>Work with other students and industry mentors to develop your teamwork and communication skills.</p>
                     </div>
                     <div className="feature-card fade-in">
                         <div className="feature-icon">
-                            <FontAwesomeIcon icon={faBriefcase} />
+                            <FontAwesomeIcon icon={icons.faBriefcase} />
                         </div>
                         <h3>Get Hired</h3>
                         <p>Connect with companies looking for talent with practical experience and proven skills.</p>
@@ -120,7 +109,7 @@ export const Home = () => {
                     <div className="benefits-list">
                         <div className="benefit-item fade-in">
                             <div className="benefit-icon">
-                                <FontAwesomeIcon icon={faChartLine} />
+                                <FontAwesomeIcon icon={icons.faChartLine} />
                             </div>
                             <div className="benefit-text">
                                 <h3>Bridge the Experience Gap</h3>
@@ -129,7 +118,7 @@ export const Home = () => {
                         </div>
                         <div className="benefit-item fade-in">
                             <div className="benefit-icon">
-                                <FontAwesomeIcon icon={faHandshake} />
+                                <FontAwesomeIcon icon={icons.faHandshake} />
                             </div>
                             <div className="benefit-text">
                                 <h3>Industry Connections</h3>
@@ -138,7 +127,7 @@ export const Home = () => {
                         </div>
                         <div className="benefit-item fade-in">
                             <div className="benefit-icon">
-                                <FontAwesomeIcon icon={faUserGraduate} />
+                                <FontAwesomeIcon icon={icons.faUserGraduate} />
                             </div>
                             <div className="benefit-text">
                                 <h3>Learn by Doing</h3>
