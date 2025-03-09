@@ -90,9 +90,19 @@
 }
 
 .content {
-    margin-left: 200px;
+    margin-left: 250px;
     padding: 20px;
-    width: calc(100% - 200px);
+    width: calc(100% - 250px);
+}
+
+.content-header {
+    margin-top: 50px; /* Increase top margin to push it below header */
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(41, 44, 88, 0.1);
+    padding-bottom: 20px;
 }
 
 .content button{
@@ -101,7 +111,26 @@
     margin-bottom: 2%;
 }
 
+.content h1 {
+    color: rgb(41, 44, 88);
+    font-size: 1.8rem;
+    font-weight: 700;
+    position: relative;
+    margin: 0;
+}
+
+.content h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background-color: rgb(41, 44, 88);
+}
+
 #create-project-button{
+    border-radius: 10px;
     transition: background-color 0.3s, color 0.3s;
     box-shadow: 0 0 5px rgb(41, 44, 88);
     width: fit-content;
@@ -116,60 +145,72 @@
     box-shadow: 0 0 10px rgba(41, 44, 88, 0.3);
 }
 .project-form {
-    width: 80%;
-    margin-bottom: 20px;
+    width: 100%;
+    margin: 0 auto;
 }
 
-.project-form button{
-    display: inline-block;
-    width: 30%;
-    max-width: 100%;
-    margin : 4%;
-    transform: scale(1);
-    transition: transform 0.2s ease, background-color 0.3s, color 0.3s;
-}
 .project-form .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .project-form label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-weight: 600;
     color: rgb(41, 44, 88);
-    font-weight:600 ;
+    font-size: 1rem;
+}
+
+.project-form input,
+.project-form textarea,
+.project-form select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid rgba(41, 44, 88, 0.3);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background-color: white;
+}
+
+.project-form input:focus,
+.project-form textarea:focus,
+.project-form select:focus {
+    outline: none;
+    border-color: rgb(41, 44, 88);
+    box-shadow: 0 0 8px rgba(41, 44, 88, 0.2);
 }
 
 .project-form textarea {
-    color: rgb(41, 44, 88);
-    width: 100%;
-    padding: 8px;
-    border: 1px solid rgb(41, 44, 88);
-    border-radius: 5px;
-    transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.project-form textarea:focus {
-    outline: none;
-    border-color: rgb(41, 44, 88);
-    box-shadow: 0 0 5px rgba(41, 44, 88, 0.3);
+    min-height: 120px;
+    resize: vertical;
 }
 
 .project-form button {
     background-color: white;
     color: rgb(41, 44, 88);
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
+    padding: 12px 25px;
+    border: 1px solid rgb(41, 44, 88);
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-    
-    box-shadow: 0 0 5px rgb(41, 44, 88);
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 1rem;
+    display: block;
+    margin: 30px auto 0;
+    min-width: 150px;
 }
 
 .project-form button:hover {
     background-color: rgb(41, 44, 88);
     color: white;
-    transform: scale(1.05);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(41, 44, 88, 0.2);
+}
+
+.project-form button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(41, 44, 88, 0.1);
 }
 
 .project-cards {
@@ -178,26 +219,27 @@
     gap: 20px;
 }
 
-.modal-open{
+.modal-open {
     overflow: hidden;
 }
+
 .modal {
     position: fixed;
     top: 50%;
     left: 50%;
-    right: auto;
-    bottom: auto;
-    margin-right: -50%;
     transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
-    width: 500px;
+    background-color: white;
+    border-radius: 15px;
+    padding: 30px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     z-index: 1001;
-    max-width: 90%;
-    opacity: 0;
     animation: fadeIn 0.3s ease forwards;
+    border: none;
+    outline: none;
 }
 
 @keyframes fadeIn {
@@ -228,6 +270,25 @@
     to { opacity: 1; }
 }
 
+.modal h2 {
+    color: rgb(41, 44, 88);
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+    text-align: center;
+    position: relative;
+}
+
+.modal h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 3px;
+    background-color: rgb(41, 44, 88);
+}
+
 .noprojmsg {
     display: flex;
     justify-content: center;
@@ -245,7 +306,7 @@
     padding: 1px 20px; /* Adjusted padding to reduce space above the title */
     color: white;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 10px;
     margin-bottom: 20px;
     transition: box-shadow 0.3s;
     width: 300px; /* Fixed width */
@@ -380,4 +441,40 @@
     font-size: 1.5em;
     font-weight: 400;
     
+}
+
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 270px; /* Position it to the right of the sidebar */
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: 1px solid rgb(41, 44, 88);
+    border-radius: 5px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.back-button:hover {
+    background-color: rgb(41, 44, 88);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.back-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.back-icon {
+    font-size: 1rem;
 }

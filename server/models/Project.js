@@ -15,7 +15,16 @@ const ProjectSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         requestDate: { type: Date, default: Date.now }
     }],
-    maxTeamSize: { type: Number, default: 4 }
+    maxTeamSize: { type: Number, default: 4 },
+    activities: [{
+        type: { type: String, enum: ['status_change', 'enrollment_accepted', 'project_created', 'enrollment_request'] },
+        timestamp: { type: Date, default: Date.now },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        username: { type: String },
+        details: { type: String },
+        oldValue: { type: String },
+        newValue: { type: String }
+    }]
 });
 
 const Project = mongoose.model('Project', ProjectSchema);

@@ -48,7 +48,26 @@ router.post('/', authenticate, async (req, res) => {
     const { title, description, deadline, domain, status } = req.body;
 
     try {
-        const newProject = new Project({ title, description, deadline, domain, status, userId: req.user.userId });
+        // Get username for activity log
+        const user = await User.findById(req.user.userId);
+        const username = user ? user.username : 'Unknown User';
+
+        const newProject = new Project({ 
+            title, 
+            description, 
+            deadline, 
+            domain, 
+            status, 
+            userId: req.user.userId,
+            activities: [{
+                type: 'project_created',
+                userId: req.user.userId,
+                username: username,
+                details: 'Project was created',
+                timestamp: new Date()
+            }]
+        });
+        
         await newProject.save();
         res.status(201).json(newProject);
     } catch (error) {
@@ -62,10 +81,31 @@ router.patch('/:id', authenticate, async (req, res) => {
     const { status } = req.body;
 
     try {
-        const project = await Project.findOneAndUpdate({ _id: id, userId: req.user.userId }, { status }, { new: true });
+        const project = await Project.findOne({ _id: id, userId: req.user.userId });
+        
         if (!project) {
             return res.status(404).json({ message: 'Project not found or you do not have permission to update this project' });
         }
+        
+        // Get username for activity log
+        const user = await User.findById(req.user.userId);
+        const username = user ? user.username : 'Unknown User';
+        
+        // Add activity for status change
+        project.activities.push({
+            type: 'status_change',
+            userId: req.user.userId,
+            username: username,
+            details: 'Project status was updated',
+            oldValue: project.status,
+            newValue: status,
+            timestamp: new Date()
+        });
+        
+        // Update status
+        project.status = status;
+        await project.save();
+        
         res.json(project);
     } catch (error) {
         res.status(500).json({ message: 'Error updating project status', error });
@@ -129,8 +169,22 @@ router.post('/:id/enroll', authenticate, async (req, res) => {
             return res.status(400).json({ message: 'Team is full' });
         }
 
+        // Get username for activity log
+        const user = await User.findById(userId);
+        const username = user ? user.username : 'Unknown User';
+
         // Add enrollment request
         project.enrollmentRequests.push({ userId });
+        
+        // Add activity for enrollment request
+        project.activities.push({
+            type: 'enrollment_request',
+            userId: userId,
+            username: username,
+            details: 'Requested to join the project',
+            timestamp: new Date()
+        });
+        
         await project.save();
 
         res.status(200).json({ 
@@ -206,6 +260,14 @@ router.patch('/:id/requests/:requestId', authenticate, async (req, res) => {
         }
 
         const request = project.enrollmentRequests[requestIndex];
+        
+        // Get username of the requester for activity log
+        const requester = await User.findById(request.userId);
+        const requesterUsername = requester ? requester.username : 'Unknown User';
+        
+        // Get username of the owner for activity log
+        const owner = await User.findById(userId);
+        const ownerUsername = owner ? owner.username : 'Unknown User';
 
         if (action === 'approve') {
             // Check if team is full
@@ -215,6 +277,15 @@ router.patch('/:id/requests/:requestId', authenticate, async (req, res) => {
 
             // Add user to enrolled users
             project.enrolledUsers.push(request.userId);
+            
+            // Add activity for enrollment acceptance
+            project.activities.push({
+                type: 'enrollment_accepted',
+                userId: userId, // Owner who accepted
+                username: ownerUsername,
+                details: `Accepted enrollment request from ${requesterUsername}`,
+                timestamp: new Date()
+            });
         }
 
         // Remove the request
@@ -302,6 +373,28 @@ router.get('/:id/recommended', authenticate, async (req, res) => {
         res.json(recommendedProjects);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching recommended projects', error });
+    }
+});
+
+// Get project activities
+router.get('/:id/activities', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Sort activities by timestamp (newest first)
+        const activities = project.activities.sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+        );
+        
+        res.json(activities);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching project activities', error });
     }
 });
 

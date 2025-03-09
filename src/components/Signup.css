@@ -6,47 +6,68 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 2rem;
 }
 
 form {
     background-color: white;
-    padding: 50px;
-    width: 300px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgb(41, 44, 88);
+    padding: 3rem 4rem;
+    width: 100%;
+    max-width: 550px;
+    border-radius: 15px;
+    box-shadow: 0 5px 30px rgba(41, 44, 88, 0.15);
     color: rgb(41, 44, 88);
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 25px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 1rem;
 }
 
 .form-group input {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    padding: 12px 15px;
+    border: 1px solid rgba(41, 44, 88, 0.3);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: rgb(41, 44, 88);
+    box-shadow: 0 0 0 3px rgba(41, 44, 88, 0.1);
 }
 
 #signup_button {
     width: 30%;
     background-color: white;
     color: rgb(41, 44, 88);
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
+    border: 1px solid rgb(41, 44, 88);
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-    box-shadow: 0 0 5px rgb(41, 44, 88); /* Add box shadow to each button */
+    transition: all 0.3s ease;
+    margin-top: 15px;
 }
 
 #signup_button:hover {
     background-color: rgb(41, 44, 88);
     color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(41, 44, 88, 0.2);
+}
+
+#signup_button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(41, 44, 88, 0.1);
 }
 

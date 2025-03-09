@@ -1,20 +1,16 @@
 .project-details-container {
-    right: 8%;
-    padding: 30px;
-    background-color: white;
-    color: rgb(41, 44, 88);
-    border-radius: 15px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    max-width: 60%;
-    margin: 3% auto;
     position: relative;
     font-family: 'Roboto', sans-serif;
+    padding: 30px;
+    max-width: 800px;
+    margin: 0 auto;
+    margin-top: 60px;
 }
 
 #project_title {
     margin-bottom: 20px;
     font-weight: 700;
-    font-size: 2.5em;
+    font-size: 2em;
 }
 
 .status-box_p {
@@ -26,7 +22,7 @@
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    font-size: 1em;
+    font-size: 0.8em;
 }
 
 .status-box_p:hover {
@@ -424,4 +420,217 @@
 .view-recommended-button:hover {
     background-color: rgb(41, 44, 88);
     color: white;
+}
+
+.back-button {
+    width: fit-content;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+}
+
+.back-button:hover {
+    background-color: rgb(41, 44, 88);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.back-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.back-icon {
+    font-size: 1rem;
+}
+
+.activity-panel {
+    position: fixed;
+    top: 80px;
+    right: 0;
+    width: 20%;
+    height: calc(100vh - 80px);
+    background-color: white;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 900;
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-panel.collapsed {
+    transform: translateX(300px);
+}
+
+.activity-toggle-button {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    background-color: rgb(41, 44, 88);
+    color: white;
+    width: 40px;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 8px 0 0 8px;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+    z-index: 899;
+}
+
+.activity-toggle-button.hidden {
+    display: none;
+}
+
+.activity-toggle-button:hover {
+    background-color: rgb(51, 54, 108);
+}
+
+.activity-toggle-text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.activity-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.activity-header h3 {
+    margin: 0;
+    color: rgb(41, 44, 88);
+    font-size: 1.2rem;
+}
+
+.close-activity-button {
+    background: none;
+    border: none;
+    color: rgb(41, 44, 88);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.close-activity-button:hover {
+    transform: scale(1.1);
+    color: #f44336;
+}
+
+.activity-content {
+    padding: 15px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.activity-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+}
+
+.activity-item.status_change::before {
+    background-color: #2196F3;
+}
+
+.activity-item.enrollment_accepted::before {
+    background-color: #4CAF50;
+}
+
+.activity-item.project_created::before {
+    background-color: #9C27B0;
+}
+
+.activity-item.enrollment_request::before {
+    background-color: #FF9800;
+}
+
+.activity-type {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.activity-type.status_change {
+    color: #2196F3;
+}
+
+.activity-type.enrollment_accepted {
+    color: #4CAF50;
+}
+
+.activity-type.project_created {
+    color: #9C27B0;
+}
+
+.activity-type.enrollment_request {
+    color: #FF9800;
+}
+
+.activity-details {
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.activity-user {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 5px;
 }

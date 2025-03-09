@@ -4,7 +4,7 @@ import './BrowserProjects.css';
 import { useNavigate } from 'react-router-dom';
 import {Header} from './Header';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faProjectDiagram, faFolderOpen, faEnvelope, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faFolderOpen, faEnvelope, faSignOutAlt, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 Modal.setAppElement('#root'); // Set the root element for accessibility
 
@@ -135,13 +135,19 @@ export const BrowseProjects = () => {
         navigate('/login');
     };
 
+   
+
     return (
         <div className="main-container">
             <Header />
+            {/* <button className="back-button" onClick={handleGoBack}>
+                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                Back
+            </button> */}
             <nav className="main_elements">
                 <ul>
                     <li>
-                        <a href="/main/browseprojects">
+                        <a href="/main/browseprojects" className="active">
                             <FontAwesomeIcon icon={faProjectDiagram} className="nav-icon" />
                             <span>Browse Projects</span>
                         </a>
@@ -167,8 +173,10 @@ export const BrowseProjects = () => {
                 </ul>
             </nav>
             <div className="content">
-                <h1>Browse Projects</h1>
-                <button onClick={openModal} id = "create-project-button">Create a Project</button>
+                <div className="content-header">
+                    <h1>Browse Projects</h1>
+                    <button onClick={openModal} id="create-project-button">Create a Project</button>
+                </div>
                 <Modal
                     isOpen={modalIsOpen}
                     onRequestClose={closeModal}

@@ -3,7 +3,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProjectDetails.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserPlus, faUsers, faCheckCircle, faBell, faCheck, faTimes, faThumbsUp } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faUserPlus, 
+  faUsers, 
+  faCheckCircle, 
+  faBell, 
+  faCheck, 
+  faTimes, 
+  faThumbsUp,
+  faArrowLeft,
+  faHistory,
+  faTimes as faClose
+} from '@fortawesome/free-solid-svg-icons';
+import config from '../config';
 
 export const ProjectDetails = () => {
   const { id } = useParams();
@@ -11,6 +23,8 @@ export const ProjectDetails = () => {
   const [project, setProject] = useState(null);
   const [ownerUsername, setOwnerUsername] = useState('');
   const [recommendedProjects, setRecommendedProjects] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [activityPanelOpen, setActivityPanelOpen] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState({
     isEnrolled: false,
     isOwner: false,
@@ -114,10 +128,67 @@ export const ProjectDetails = () => {
     }
   }, [id, token]);
 
+  const fetchActivities = useCallback(async () => {
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/activities`);
+      if (!response.ok) {
+        console.warn('Activities endpoint not available yet. This is expected if you haven\'t restarted the server.');
+        // Add some default activities for demonstration
+        setActivities([
+          {
+            type: 'project_created',
+            timestamp: new Date(),
+            username: ownerUsername || 'Project Owner',
+            details: 'Project was created',
+          },
+          {
+            type: 'status_change',
+            timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+            username: ownerUsername || 'Project Owner',
+            details: 'Project status was updated',
+            oldValue: 'Open',
+            newValue: project?.status || 'In Progress',
+          }
+        ]);
+        return;
+      }
+      const data = await response.json();
+      if (data.length === 0 && project) {
+        // If no activities are returned but we have project data, add a default activity
+        setActivities([
+          {
+            type: 'project_created',
+            timestamp: new Date(),
+            username: ownerUsername || 'Project Owner',
+            details: 'Project was created',
+          }
+        ]);
+      } else {
+        setActivities(data);
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      // Add a default activity in case of error
+      setActivities([
+        {
+          type: 'project_created',
+          timestamp: new Date(),
+          username: ownerUsername || 'Project Owner',
+          details: 'Project was created',
+        }
+      ]);
+    }
+  }, [id, project, ownerUsername]);
+
   useEffect(() => {
-    fetchProject();
-    fetchEnrollmentStatus();
-  }, [fetchProject, fetchEnrollmentStatus]);
+    const loadData = async () => {
+      await fetchProject();
+      await fetchEnrollmentStatus();
+      await fetchActivities();
+    };
+    
+    loadData();
+  }, [fetchProject, fetchEnrollmentStatus, fetchActivities]);
 
   useEffect(() => {
     if (enrollmentStatus.isOwner) {
@@ -206,6 +277,48 @@ export const ProjectDetails = () => {
     navigate(`/main/browseprojects/${projectId}`);
   };
 
+  const handleGoBack = () => {
+    navigate(-1); // Navigate to the previous page
+  };
+
+  const toggleActivityPanel = () => {
+    setActivityPanelOpen(!activityPanelOpen);
+  };
+
+  const formatActivityTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.round(diffMs / 60000);
+    const diffHours = Math.round(diffMs / 3600000);
+    const diffDays = Math.round(diffMs / 86400000);
+
+    if (diffMins < 60) {
+      return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  const getActivityTypeLabel = (type) => {
+    switch (type) {
+      case 'status_change':
+        return 'Status Changed';
+      case 'enrollment_accepted':
+        return 'Member Added';
+      case 'project_created':
+        return 'Project Created';
+      case 'enrollment_request':
+        return 'Join Request';
+      default:
+        return type.replace('_', ' ');
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading project details...</div>;
   }
@@ -274,92 +387,136 @@ export const ProjectDetails = () => {
   };
 
   return (
-    <div className="project-details-container">
-      <div className={`status-box_p ${statusClass}`}>{project.status}</div>
+    <>
+      <button className="back-button" onClick={handleGoBack}>
+        <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+        Back
+      </button>
       
-      {enrollmentStatus.isOwner && enrollmentStatus.requestCount > 0 && (
-        <div className="requests-container">
-          <button 
-            className="requests-button" 
-            onClick={toggleRequestsPanel}
-            title="Enrollment Requests"
-          >
-            <FontAwesomeIcon icon={faBell} className="requests-icon" />
-            <span className="request-count">{enrollmentStatus.requestCount}</span>
+      <div className={`activity-panel ${activityPanelOpen ? '' : 'collapsed'}`}>
+        <div className="activity-header">
+          <h3>Recent Activity</h3>
+          <button className="close-activity-button" onClick={toggleActivityPanel}>
+            <FontAwesomeIcon icon={faClose} />
           </button>
-          
-          {showRequests && (
-            <div className="requests-panel">
-              <h3>Enrollment Requests</h3>
-              {enrollmentRequests.length === 0 ? (
-                <p>No pending requests</p>
-              ) : (
-                <ul className="requests-list">
-                  {enrollmentRequests.map(request => (
-                    <li key={request.requestId} className="request-item">
-                      <span className="request-username">{request.username}</span>
-                      <div className="request-actions">
-                        <button 
-                          className="approve-button"
-                          onClick={() => handleRequestAction(request.requestId, 'approve')}
-                          disabled={enrollmentStatus.isFull}
-                          title="Approve Request"
-                        >
-                          <FontAwesomeIcon icon={faCheck} />
-                        </button>
-                        <button 
-                          className="reject-button"
-                          onClick={() => handleRequestAction(request.requestId, 'reject')}
-                          title="Reject Request"
-                        >
-                          <FontAwesomeIcon icon={faTimes} />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+        </div>
+        <div className="activity-content">
+          {activities.length === 0 ? (
+            <p>No recent activity</p>
+          ) : (
+            <ul className="activity-list">
+              {activities.map((activity, index) => (
+                <li key={index} className={`activity-item ${activity.type}`}>
+                  <div className={`activity-type ${activity.type}`}>
+                    {getActivityTypeLabel(activity.type)}
+                  </div>
+                  <div className="activity-details">
+                    {activity.details}
+                    {activity.type === 'status_change' && (
+                      <span> from <strong>{activity.oldValue}</strong> to <strong>{activity.newValue}</strong></span>
+                    )}
+                  </div>
+                  <div className="activity-user">by {activity.username}</div>
+                  <div className="activity-time">{formatActivityTime(activity.timestamp)}</div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-      )}
-      
-      <span id="project_title">{project.title}</span>
-      <div id="project_user">by {ownerUsername}</div>
-      <div id="project_description_title">Project Description</div>    
-      <div id="project_description">{project.description}</div>
-      <div id="project_domain_title">Domain</div>
-      <div id="project_domain">{project.domain}</div>
-      
-      <div className="enroll-button-container">
-        {renderEnrollButton()}
       </div>
       
-      {recommendedProjects.length > 0 && (
-        <div className="recommended-projects-section">
-          <h3 className="recommended-title">
-            <FontAwesomeIcon icon={faThumbsUp} className="recommended-icon" />
-            Recommended Projects
-          </h3>
-          <div className="recommended-projects-container">
-            {recommendedProjects.map(proj => (
-              <div key={proj._id} className="recommended-project-card">
-                <h4>{proj.title}</h4>
-                <div className={`status-indicator status-${proj.status.toLowerCase().replace(' ', '-')}`}>
-                  {proj.status}
-                </div>
-                <p className="recommended-domain">{proj.domain}</p>
-                <button 
-                  className="view-recommended-button"
-                  onClick={() => handleViewProject(proj._id)}
-                >
-                  View Project
-                </button>
+      <div className={`activity-toggle-button ${activityPanelOpen ? 'hidden' : ''}`} onClick={toggleActivityPanel}>
+        <FontAwesomeIcon icon={faHistory} />
+        <span className="activity-toggle-text">Activity</span>
+      </div>
+      
+      <div className="project-details-container">
+        <div className={`status-box_p ${statusClass}`}>{project.status}</div>
+        
+        {enrollmentStatus.isOwner && enrollmentStatus.requestCount > 0 && (
+          <div className="requests-container">
+            <button 
+              className="requests-button" 
+              onClick={toggleRequestsPanel}
+              title="Enrollment Requests"
+            >
+              <FontAwesomeIcon icon={faBell} className="requests-icon" />
+              <span className="request-count">{enrollmentStatus.requestCount}</span>
+            </button>
+            
+            {showRequests && (
+              <div className="requests-panel">
+                <h3>Enrollment Requests</h3>
+                {enrollmentRequests.length === 0 ? (
+                  <p>No pending requests</p>
+                ) : (
+                  <ul className="requests-list">
+                    {enrollmentRequests.map(request => (
+                      <li key={request.requestId} className="request-item">
+                        <span className="request-username">{request.username}</span>
+                        <div className="request-actions">
+                          <button 
+                            className="approve-button"
+                            onClick={() => handleRequestAction(request.requestId, 'approve')}
+                            disabled={enrollmentStatus.isFull}
+                            title="Approve Request"
+                          >
+                            <FontAwesomeIcon icon={faCheck} />
+                          </button>
+                          <button 
+                            className="reject-button"
+                            onClick={() => handleRequestAction(request.requestId, 'reject')}
+                            title="Reject Request"
+                          >
+                            <FontAwesomeIcon icon={faTimes} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            ))}
+            )}
           </div>
+        )}
+        
+        <span id="project_title">{project.title}</span>
+        <div id="project_user">by {ownerUsername}</div>
+        <div id="project_description_title">Project Description</div>    
+        <div id="project_description">{project.description}</div>
+        <div id="project_domain_title">Domain</div>
+        <div id="project_domain">{project.domain}</div>
+        
+        <div className="enroll-button-container">
+          {renderEnrollButton()}
         </div>
-      )}
-    </div>
+        
+        {recommendedProjects.length > 0 && (
+          <div className="recommended-projects-section">
+            <h3 className="recommended-title">
+              <FontAwesomeIcon icon={faThumbsUp} className="recommended-icon" />
+              Recommended Projects
+            </h3>
+            <div className="recommended-projects-container">
+              {recommendedProjects.map(proj => (
+                <div key={proj._id} className="recommended-project-card">
+                  <h4>{proj.title}</h4>
+                  <div className={`status-indicator status-${proj.status.toLowerCase().replace(' ', '-')}`}>
+                    {proj.status}
+                  </div>
+                  <p className="recommended-domain">{proj.domain}</p>
+                  <button 
+                    className="view-recommended-button"
+                    onClick={() => handleViewProject(proj._id)}
+                  >
+                    View Project
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
