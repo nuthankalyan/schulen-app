@@ -177,6 +177,7 @@
 }
 
 .requests-button {
+    right: 70%;
     position: relative;
     background-color: rgb(41, 44, 88);
     color: white;

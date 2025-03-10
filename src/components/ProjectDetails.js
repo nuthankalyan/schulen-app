@@ -51,21 +51,29 @@ export const ProjectDetails = () => {
         throw new Error('Failed to fetch project');
       }
       const data = await response.json();
+      
+      // Always update project data when fetching a new project
       setProject(data);
       
-      // Fetch owner's username
+      // Always fetch owner's username for the new project
       const ownerResponse = await fetch(`http://localhost:5000/browseprojects/user/${data.userId}`);
       if (ownerResponse.ok) {
         const ownerData = await ownerResponse.json();
         setOwnerUsername(ownerData.username);
       }
+      
+      // Reset error state if successful
+      setError(null);
     } catch (error) {
       setError('Error fetching project details');
       console.error(error);
+      // Reset project data on error
+      setProject(null);
+      setOwnerUsername('');
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id]); // Only depend on id to prevent unnecessary recreations
 
   const fetchEnrollmentStatus = useCallback(async () => {
     if (!token) return;
@@ -83,10 +91,23 @@ export const ProjectDetails = () => {
       
       const data = await response.json();
       setEnrollmentStatus(data);
+      
+      // Reset requests panel when switching projects
+      setShowRequests(false);
     } catch (error) {
       console.error('Error fetching enrollment status:', error);
+      // Reset enrollment status on error
+      setEnrollmentStatus({
+        isEnrolled: false,
+        isOwner: false,
+        isFull: false,
+        hasPendingRequest: false,
+        requestCount: 0,
+        enrolledCount: 0,
+        maxTeamSize: 4
+      });
     }
-  }, [id, token]);
+  }, [id, token]); // Only depend on id and token
 
   const fetchEnrollmentRequests = useCallback(async () => {
     if (!token || !enrollmentStatus.isOwner) return;
@@ -103,11 +124,15 @@ export const ProjectDetails = () => {
       }
       
       const data = await response.json();
-      setEnrollmentRequests(data);
+      
+      // Only update if the data has changed to prevent unnecessary re-renders
+      if (JSON.stringify(enrollmentRequests) !== JSON.stringify(data)) {
+        setEnrollmentRequests(data);
+      }
     } catch (error) {
       console.error('Error fetching enrollment requests:', error);
     }
-  }, [id, token, enrollmentStatus.isOwner]);
+  }, [id, token, enrollmentStatus.isOwner, enrollmentRequests]);
 
   const fetchRecommendedProjects = useCallback(async () => {
     if (!token) return;
@@ -124,9 +149,12 @@ export const ProjectDetails = () => {
       }
       
       const data = await response.json();
-      setRecommendedProjects(data);
+      // Filter out the current project from recommendations
+      const filteredData = data.filter(proj => proj._id !== id);
+      setRecommendedProjects(filteredData);
     } catch (error) {
       console.error('Error fetching recommended projects:', error);
+      setRecommendedProjects([]);
     }
   }, [id, token]);
 
@@ -135,28 +163,31 @@ export const ProjectDetails = () => {
       const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/activities`);
       if (!response.ok) {
         console.warn('Activities endpoint not available yet. This is expected if you haven\'t restarted the server.');
-        // Add some default activities for demonstration
-        setActivities([
-          {
-            type: 'project_created',
-            timestamp: new Date(),
-            username: ownerUsername || 'Project Owner',
-            details: 'Project was created',
-          },
-          {
-            type: 'status_change',
-            timestamp: new Date(Date.now() - 3600000), // 1 hour ago
-            username: ownerUsername || 'Project Owner',
-            details: 'Project status was updated',
-            oldValue: 'Open',
-            newValue: project?.status || 'In Progress',
-          }
-        ]);
+        // Add some default activities for demonstration without causing re-renders
+        if (activities.length === 0) {
+          setActivities([
+            {
+              type: 'project_created',
+              timestamp: new Date(),
+              username: ownerUsername || 'Project Owner',
+              details: 'Project was created',
+            },
+            {
+              type: 'status_change',
+              timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+              username: ownerUsername || 'Project Owner',
+              details: 'Project status was updated',
+              oldValue: 'Open',
+              newValue: project?.status || 'In Progress',
+            }
+          ]);
+        }
         return;
       }
       const data = await response.json();
-      if (data.length === 0 && project) {
+      if (data.length === 0 && project && activities.length === 0) {
         // If no activities are returned but we have project data, add a default activity
+        // Only do this if we don't already have activities to prevent infinite loops
         setActivities([
           {
             type: 'project_created',
@@ -165,39 +196,98 @@ export const ProjectDetails = () => {
             details: 'Project was created',
           }
         ]);
-      } else {
+      } else if (data.length > 0) {
+        // Only update if we have actual data from the server
         setActivities(data);
       }
     } catch (error) {
       console.error('Error fetching activities:', error);
-      // Add a default activity in case of error
-      setActivities([
-        {
-          type: 'project_created',
-          timestamp: new Date(),
-          username: ownerUsername || 'Project Owner',
-          details: 'Project was created',
-        }
-      ]);
+      // Add a default activity in case of error, but only if we don't already have activities
+      if (activities.length === 0) {
+        setActivities([
+          {
+            type: 'project_created',
+            timestamp: new Date(),
+            username: ownerUsername || 'Project Owner',
+            details: 'Project was created',
+          }
+        ]);
+      }
     }
-  }, [id, project, ownerUsername]);
+  }, [id, project?.status, ownerUsername, activities.length]);
 
+  const handleViewProject = (projectId) => {
+    // First reset all states
+    setProject(null);
+    setOwnerUsername('');
+    setRecommendedProjects([]);
+    setActivities([]);
+    setEnrollmentStatus({
+      isEnrolled: false,
+      isOwner: false,
+      isFull: false,
+      hasPendingRequest: false,
+      requestCount: 0,
+      enrolledCount: 0,
+      maxTeamSize: 4
+    });
+    setEnrollmentRequests([]);
+    setShowRequests(false);
+    setLoading(true);
+    setError(null);
+    
+    // Then navigate to the new project
+    navigate(`/main/browseprojects/${projectId}`, { replace: true });
+  };
+
+  // Add a new effect to handle URL parameter changes
   useEffect(() => {
+    let isMounted = true;
+    
     const loadData = async () => {
-      await fetchProject();
-      await fetchEnrollmentStatus();
-      await fetchActivities();
+      if (!isMounted) return;
+      
+      // Set a loading state to prevent multiple simultaneous requests
+      if (!loading) setLoading(true);
+      
+      try {
+        await fetchProject();
+        if (isMounted) await fetchEnrollmentStatus();
+        if (isMounted) await fetchActivities();
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
     
     loadData();
-  }, [fetchProject, fetchEnrollmentStatus, fetchActivities]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [id]); // Re-run when the id parameter changes
+
+  // Separate effect for periodic updates
+  useEffect(() => {
+    // Set up an interval to refresh data periodically
+    const refreshInterval = setInterval(() => {
+      if (!loading) {
+        fetchEnrollmentStatus();
+        if (enrollmentStatus.isOwner) {
+          fetchEnrollmentRequests();
+        }
+      }
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [loading, enrollmentStatus.isOwner]);
 
   useEffect(() => {
     if (enrollmentStatus.isOwner) {
       fetchEnrollmentRequests();
     }
     fetchRecommendedProjects();
-  }, [enrollmentStatus.isOwner, fetchEnrollmentRequests, fetchRecommendedProjects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrollmentStatus.isOwner]); // Only depend on isOwner status to prevent infinite loops
 
   const handleEnroll = async () => {
     if (!token) {
@@ -273,10 +363,6 @@ export const ProjectDetails = () => {
 
   const toggleRequestsPanel = () => {
     setShowRequests(!showRequests);
-  };
-
-  const handleViewProject = (projectId) => {
-    navigate(`/main/browseprojects/${projectId}`);
   };
 
   const handleGoBack = () => {
