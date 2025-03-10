@@ -3,7 +3,21 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProjectDetails.css';
 import config from '../config';
-import { FontAwesomeIcon, icons } from '../fontawesome';
+import { FontAwesomeIcon } from '../fontawesome';
+import { 
+  faUserPlus, 
+  faUsers, 
+  faCheckCircle, 
+  faBell, 
+  faCheck, 
+  faTimes, 
+  faThumbsUp,
+  faArrowLeft,
+  faHistory
+} from '@fortawesome/free-solid-svg-icons';
+
+// Use faClose as an alias for faTimes
+const faClose = faTimes;
 
 export const ProjectDetails = () => {
   const { id } = useParams();
@@ -327,7 +341,7 @@ export const ProjectDetails = () => {
     if (enrollmentStatus.isOwner) {
       return (
         <button className="enroll-button owner-button" disabled>
-          <FontAwesomeIcon icon={icons.faUsers} className="enroll-icon" />
+          <FontAwesomeIcon icon={faUsers} className="enroll-icon" />
           Project Owner
         </button>
       );
@@ -336,7 +350,7 @@ export const ProjectDetails = () => {
     if (enrollmentStatus.isEnrolled) {
       return (
         <button className="enroll-button enrolled-button" disabled>
-          <FontAwesomeIcon icon={icons.faCheckCircle} className="enroll-icon" />
+          <FontAwesomeIcon icon={faCheckCircle} className="enroll-icon" />
           Enrolled
         </button>
       );
@@ -345,7 +359,7 @@ export const ProjectDetails = () => {
     if (enrollmentStatus.hasPendingRequest) {
       return (
         <button className="enroll-button pending-button" disabled>
-          <FontAwesomeIcon icon={icons.faBell} className="enroll-icon" />
+          <FontAwesomeIcon icon={faBell} className="enroll-icon" />
           Request Pending
         </button>
       );
@@ -354,7 +368,7 @@ export const ProjectDetails = () => {
     if (enrollmentStatus.isFull) {
       return (
         <button className="enroll-button full-button" disabled>
-          <FontAwesomeIcon icon={icons.faUsers} className="enroll-icon" />
+          <FontAwesomeIcon icon={faUsers} className="enroll-icon" />
           Team Full ({enrollmentStatus.enrolledCount}/{enrollmentStatus.maxTeamSize})
         </button>
       );
@@ -366,7 +380,7 @@ export const ProjectDetails = () => {
         onClick={handleEnroll}
         disabled={project.status === 'Closed' || enrollmentLoading}
       >
-        <FontAwesomeIcon icon={icons.faUserPlus} className="enroll-icon" />
+        <FontAwesomeIcon icon={faUserPlus} className="enroll-icon" />
         {enrollmentLoading ? 'Sending Request...' : 'Request to Join'}
         {enrollmentStatus.enrolledCount > 0 && 
           ` (${enrollmentStatus.enrolledCount}/${enrollmentStatus.maxTeamSize})`}
@@ -377,7 +391,7 @@ export const ProjectDetails = () => {
   return (
     <>
       <button className="back-button" onClick={handleGoBack}>
-        <FontAwesomeIcon icon={icons.faArrowLeft} className="back-icon" />
+        <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
         Back
       </button>
       
@@ -385,7 +399,7 @@ export const ProjectDetails = () => {
         <div className="activity-header">
           <h3>Recent Activity</h3>
           <button className="close-activity-button" onClick={toggleActivityPanel}>
-            <FontAwesomeIcon icon={icons.faClose} />
+            <FontAwesomeIcon icon={faClose} />
           </button>
         </div>
         <div className="activity-content">
@@ -414,7 +428,7 @@ export const ProjectDetails = () => {
       </div>
       
       <div className={`activity-toggle-button ${activityPanelOpen ? 'hidden' : ''}`} onClick={toggleActivityPanel}>
-        <FontAwesomeIcon icon={icons.faHistory} />
+        <FontAwesomeIcon icon={faHistory} />
         <span className="activity-toggle-text">Activity</span>
       </div>
       
@@ -428,7 +442,7 @@ export const ProjectDetails = () => {
               onClick={toggleRequestsPanel}
               title="Enrollment Requests"
             >
-              <FontAwesomeIcon icon={icons.faBell} className="requests-icon" />
+              <FontAwesomeIcon icon={faBell} className="requests-icon" />
               <span className="request-count">{enrollmentStatus.requestCount}</span>
             </button>
             
@@ -449,14 +463,14 @@ export const ProjectDetails = () => {
                             disabled={enrollmentStatus.isFull}
                             title="Approve Request"
                           >
-                            <FontAwesomeIcon icon={icons.faCheck} />
+                            <FontAwesomeIcon icon={faCheck} />
                           </button>
                           <button 
                             className="reject-button"
                             onClick={() => handleRequestAction(request.requestId, 'reject')}
                             title="Reject Request"
                           >
-                            <FontAwesomeIcon icon={icons.faTimes} />
+                            <FontAwesomeIcon icon={faTimes} />
                           </button>
                         </div>
                       </li>
@@ -482,7 +496,7 @@ export const ProjectDetails = () => {
         {recommendedProjects.length > 0 && (
           <div className="recommended-projects-section">
             <h3 className="recommended-title">
-              <FontAwesomeIcon icon={icons.faThumbsUp} className="recommended-icon" />
+              <FontAwesomeIcon icon={faThumbsUp} className="recommended-icon" />
               Recommended Projects
             </h3>
             <div className="recommended-projects-container">
