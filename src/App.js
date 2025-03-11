@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { Home } from './components/Home';
 import { About } from './components/About';
@@ -15,18 +15,16 @@ const PrivateRoute = ({ element: Component, ...rest }) => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/main" element={<PrivateRoute element={Main} />} />
-        <Route path="/main/browseprojects" element={<PrivateRoute element={BrowseProjects} />} />
-        <Route path="/main/browseprojects/:id" element={<PrivateRoute element={ProjectDetails} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/main" element={<PrivateRoute element={Main} />} />
+      <Route path="/main/browseprojects" element={<PrivateRoute element={BrowseProjects} />} />
+      <Route path="/main/browseprojects/:id" element={<PrivateRoute element={ProjectDetails} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
