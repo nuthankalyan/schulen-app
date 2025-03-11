@@ -12,19 +12,26 @@ export const Signup = () => {
     const handleSignup = async (e) => {
         e.preventDefault();
 
-        const response = await fetch(`${config.API_BASE_URL}/signup`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password, confirmPassword }),
-        });
+        try {
+            const response = await fetch(`${config.API_BASE_URL}/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ username, password, confirmPassword }),
+            });
 
-        if (response.ok) {
-            navigate('/login');
-        } else {
-            const data = await response.json();
-            alert(data.message);
+            if (response.ok) {
+                navigate('/login');
+            } else {
+                const data = await response.json();
+                alert(data.message);
+            }
+        } catch (error) {
+            console.error('Error during signup:', error);
+            alert('An error occurred during signup. Please try again.');
         }
     };
 
