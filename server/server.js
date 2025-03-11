@@ -16,7 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // CORS configuration
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://schulen-app.vercel.app'],
+    origin: ['http://localhost:3000', 'https://schulen-app.vercel.app', 'https://schulen-app.onrender.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
