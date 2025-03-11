@@ -2,11 +2,13 @@
   "root": "build/",
   "clean_urls": false,
   "routes": {
+    "/main/browseprojects": "index.html",
+    "/main/browseprojects/*": "index.html",
     "/**": "index.html"
   },
   "headers": {
     "/**": {
-      "Cache-Control": "no-store, no-cache",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
       "Access-Control-Allow-Origin": "*"
     }
   }

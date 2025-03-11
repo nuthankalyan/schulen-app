@@ -8,8 +8,16 @@ services:
       - source: /**
         headers:
           - key: Cache-Control
-            value: no-cache
+            value: no-cache, no-store, must-revalidate
+          - key: Access-Control-Allow-Origin
+            value: "*"
     routes:
+      - type: rewrite
+        source: /main/browseprojects
+        destination: /index.html
+      - type: rewrite
+        source: /main/browseprojects/*
+        destination: /index.html
       - type: rewrite
         source: /**
         destination: /index.html 
