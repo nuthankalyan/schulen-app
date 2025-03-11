@@ -1,6 +1,6 @@
 import React from 'react';
 import './Main.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export const Main = () => {
     const navigate = useNavigate();
@@ -14,9 +14,9 @@ export const Main = () => {
         <div className="main-container">
             <nav className="main_elements">
                 <ul>
-                    <li><a href="/main/browseprojects">Browse Projects</a></li>
-                    <li><a href="/my-projects">My Projects</a></li>
-                    <li><a href="/messages">Messages</a></li>
+                    <li><Link to="/main/browseprojects">Browse Projects</Link></li>
+                    <li><Link to="/my-projects">My Projects</Link></li>
+                    <li><Link to="/messages">Messages</Link></li>
                     <li><button onClick={handleLogout}>Logout</button></li>
                 </ul>
             </nav>

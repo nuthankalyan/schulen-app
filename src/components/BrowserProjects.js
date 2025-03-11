@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './BrowserProjects.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {Header} from './Header';
 import config from '../config';
 import { FontAwesomeIcon } from '../fontawesome';
@@ -154,22 +154,22 @@ export const BrowseProjects = () => {
             <nav className="main_elements">
                 <ul>
                     <li>
-                        <a href="/main/browseprojects" className="active">
+                        <Link to="/main/browseprojects" className="active">
                             <FontAwesomeIcon icon={faProjectDiagram} className="nav-icon" />
                             <span>Browse Projects</span>
-                        </a>
+                        </Link>
                     </li>
                     <li>
-                        <a href="/my-projects">
+                        <Link to="/my-projects">
                             <FontAwesomeIcon icon={faFolderOpen} className="nav-icon" />
                             <span>My Projects</span>
-                        </a>
+                        </Link>
                     </li>
                     <li>
-                        <a href="/messages">
+                        <Link to="/messages">
                             <FontAwesomeIcon icon={faEnvelope} className="nav-icon" />
                             <span>Messages</span>
-                        </a>
+                        </Link>
                     </li>
                     <li>
                         <button onClick={handleLogout}>

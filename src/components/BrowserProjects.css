@@ -43,6 +43,7 @@
 }
 
 .main_elements ul li a,
+.main_elements ul li Link,
 .main_elements ul li button {
     display: flex;
     align-items: center;
@@ -59,7 +60,7 @@
     background-color: transparent;
     width: 100%;
     cursor: pointer;
-    white-space: nowrap; /* Prevent text wrapping */
+    white-space: nowrap;
 }
 
 .nav-icon {
@@ -70,19 +71,22 @@
 }
 
 .main_elements ul li a:hover .nav-icon,
+.main_elements ul li Link:hover .nav-icon,
 .main_elements ul li button:hover .nav-icon {
     transform: scale(1.03);
 }
 
 .main_elements ul li a:hover,
+.main_elements ul li Link:hover,
 .main_elements ul li button:hover {
     background: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px); /* Reduce the transform distance */
-    padding-left: 25px; /* Add a bit more padding on hover */
+    transform: translateX(5px);
+    padding-left: 25px;
 }
 
 /* Ensure the span inside nav items doesn't wrap */
 .main_elements ul li a span,
+.main_elements ul li Link span,
 .main_elements ul li button span {
     white-space: nowrap;
     overflow: hidden;
@@ -477,4 +481,9 @@
 
 .back-icon {
     font-size: 1rem;
+}
+
+.active {
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: bold;
 }

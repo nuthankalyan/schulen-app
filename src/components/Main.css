@@ -29,21 +29,25 @@
     margin-bottom: 20px;
 }
 
-.main_elements ul li a,button {
-    width: 50%; /* Ensure the links take the full width of the sidebar */
-    display: block; /* Make the links block elements */
-    padding: 10px;
-    color: white; /* Change text color to rgb(41, 44, 88) */
+.main_elements ul li a,
+.main_elements ul li Link,
+.main_elements ul li button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: white;
     text-decoration: none;
-    font-size: 0.8em; /* Adjusted font size for better visibility */
-    position: relative; /* Required for the pseudo-element */
-    transition: color 0.3s;
-    outline: none; /* Remove the outline border */
-    border: none; /* Remove any border */
-    background-color: transparent; /* Ensure background is transparent */
+    font-size: 0.8em;
+    position: relative;
+    transition: all 0.3s ease;
+    outline: none;
+    border: none;
+    background-color: transparent;
 }
 
-.main_elements ul li a::after {
+.main_elements ul li a::after,
+.main_elements ul li Link::after {
     content: '';
     position: absolute;
     width: 0;
@@ -51,20 +55,25 @@
     display: block;
     bottom: 0;
     left: 0;
-    background: white; /* Change underline color to rgb(41, 44, 88) */
+    background: white;
     transition: width 0.3s ease;
     -webkit-transition: width 0.3s ease;
 }
 
-.main_elements ul li a:hover {
-    width: 50%;
+.main_elements ul li a:hover,
+.main_elements ul li Link:hover {
     color: white;
-    background-color: transparent; /* Ensure background remains transparent on hover */
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-.main_elements ul li a:hover::after {
+.main_elements ul li a:hover::after,
+.main_elements ul li Link:hover::after {
     width: 50%;
-    
+}
+
+.main_elements ul li button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .content {
