@@ -45,9 +45,9 @@ export const ProjectDetails = () => {
   const token = localStorage.getItem('token');
 
   const fetchProject = useCallback(async () => {
-    try {
-      const response = await fetch(`http://localhost:5000/browseprojects/${id}`);
-      if (!response.ok) {
+      try {
+        const response = await fetch(`http://localhost:5000/browseprojects/${id}`);
+        if (!response.ok) {
         throw new Error('Failed to fetch project');
       }
       const data = await response.json();
@@ -183,8 +183,8 @@ export const ProjectDetails = () => {
           ]);
         }
         return;
-      }
-      const data = await response.json();
+        }
+        const data = await response.json();
       if (data.length === 0 && project && activities.length === 0) {
         // If no activities are returned but we have project data, add a default activity
         // Only do this if we don't already have activities to prevent infinite loops
@@ -200,7 +200,7 @@ export const ProjectDetails = () => {
         // Only update if we have actual data from the server
         setActivities(data);
       }
-    } catch (error) {
+      } catch (error) {
       console.error('Error fetching activities:', error);
       // Add a default activity in case of error, but only if we don't already have activities
       if (activities.length === 0) {
@@ -518,8 +518,8 @@ export const ProjectDetails = () => {
         <span className="activity-toggle-text">Activity</span>
       </div>
       
-      <div className="project-details-container">
-        <div className={`status-box_p ${statusClass}`}>{project.status}</div>
+    <div className="project-details-container">
+      <div className={`status-box_p ${statusClass}`}>{project.status}</div>
         
         {enrollmentStatus.isOwner && enrollmentStatus.requestCount > 0 && (
           <div className="requests-container">
@@ -570,9 +570,9 @@ export const ProjectDetails = () => {
         
         <span id="project_title">{project.title}</span>
         <div id="project_user">by {ownerUsername}</div>
-        <div id="project_description_title">Project Description</div>    
-        <div id="project_description">{project.description}</div>
-        <div id="project_domain_title">Domain</div>
+      <div id="project_description_title">Project Description</div>    
+      <div id="project_description">{project.description}</div>
+      <div id="project_domain_title">Domain</div>
         <div id="project_domain">{project.domain}</div>
         
         <div className="enroll-button-container">
@@ -604,7 +604,7 @@ export const ProjectDetails = () => {
             </div>
           </div>
         )}
-      </div>
+    </div>
     </>
   );
 };
