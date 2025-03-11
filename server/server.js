@@ -3,21 +3,35 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const dotenv = require('dotenv');
 const projectsRouter = require('./routes/projects');
 const User = require('./models/User');
 
+// Load environment variables
+dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = 'your_jwt_secret'; // Replace with your own secret
+const JWT_SECRET = process.env.JWT_SECRET;
 
-app.use(cors());
+// CORS configuration
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://schulen-app.vercel.app'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 200
+}));
+
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/schulen_app', {
+mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-});
+})
+.then(() => console.log('Connected to MongoDB Atlas'))
+.catch((err) => console.error('MongoDB connection error:', err));
 
 // Signup route
 app.post('/signup', async (req, res) => {

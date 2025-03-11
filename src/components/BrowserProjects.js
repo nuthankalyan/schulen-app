@@ -3,6 +3,7 @@ import Modal from 'react-modal';
 import './BrowserProjects.css';
 import { useNavigate } from 'react-router-dom';
 import {Header} from './Header';
+import config from '../config';
 import { FontAwesomeIcon } from '../fontawesome';
 import { 
   faProjectDiagram, 
@@ -29,7 +30,7 @@ export const BrowseProjects = () => {
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const response = await fetch('http://localhost:5000/browseprojects');
+                const response = await fetch(`${config.API_BASE_URL}/browseprojects`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -49,7 +50,7 @@ export const BrowseProjects = () => {
         const token = localStorage.getItem('token');
 
         try {
-            const response = await fetch('http://localhost:5000/browseprojects', {
+            const response = await fetch(`${config.API_BASE_URL}/browseprojects`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export const BrowseProjects = () => {
         const token = localStorage.getItem('token');
         if (window.confirm('Are you sure you want to delete this project?')) {
             try {
-                const response = await fetch(`http://localhost:5000/browseprojects/${projectId}`, {
+                const response = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': token,
@@ -103,7 +104,7 @@ export const BrowseProjects = () => {
     const handleChangeStatus = async (projectId, newStatus) => {
         const token = localStorage.getItem('token');
         try {
-            const response = await fetch(`http://localhost:5000/browseprojects/${projectId}`, {
+            const response = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

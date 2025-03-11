@@ -46,7 +46,7 @@ export const ProjectDetails = () => {
 
   const fetchProject = useCallback(async () => {
       try {
-        const response = await fetch(`http://localhost:5000/browseprojects/${id}`);
+        const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}`);
         if (!response.ok) {
         throw new Error('Failed to fetch project');
       }
@@ -56,7 +56,7 @@ export const ProjectDetails = () => {
       setProject(data);
       
       // Always fetch owner's username for the new project
-      const ownerResponse = await fetch(`http://localhost:5000/browseprojects/user/${data.userId}`);
+      const ownerResponse = await fetch(`${config.API_BASE_URL}/browseprojects/user/${data.userId}`);
       if (ownerResponse.ok) {
         const ownerData = await ownerResponse.json();
         setOwnerUsername(ownerData.username);
@@ -79,7 +79,7 @@ export const ProjectDetails = () => {
     if (!token) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/browseprojects/${id}/enrollment`, {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/enrollment`, {
         headers: {
           'Authorization': token
         }
@@ -113,7 +113,7 @@ export const ProjectDetails = () => {
     if (!token || !enrollmentStatus.isOwner) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/browseprojects/${id}/requests`, {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/requests`, {
         headers: {
           'Authorization': token
         }
@@ -138,7 +138,7 @@ export const ProjectDetails = () => {
     if (!token) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/browseprojects/${id}/recommended`, {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/recommended`, {
         headers: {
           'Authorization': token
         }
@@ -298,7 +298,7 @@ export const ProjectDetails = () => {
     setEnrollmentLoading(true);
     
     try {
-      const response = await fetch(`http://localhost:5000/browseprojects/${id}/enroll`, {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/enroll`, {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -329,7 +329,7 @@ export const ProjectDetails = () => {
 
   const handleRequestAction = async (requestId, action) => {
     try {
-      const response = await fetch(`http://localhost:5000/browseprojects/${id}/requests/${requestId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/requests/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': token,
