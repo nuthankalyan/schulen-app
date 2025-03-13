@@ -134,10 +134,12 @@
 }
 
 #create-project-button{
+    padding: 10px 20px;
     border-radius: 10px;
-    transition: background-color 0.3s, color 0.3s;
-    box-shadow: 0 0 5px rgb(41, 44, 88);
+    
+    border: none;
     width: fit-content;
+    box-shadow: 0 0 10px rgba(41, 44, 88, 0.3);
     transform: scale(1);
     transition: transform 0.2s ease, background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
@@ -146,7 +148,7 @@
     background-color: rgb(41, 44, 88);
     color: white;
     transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(41, 44, 88, 0.3);
+    
 }
 .project-form {
     width: 100%;
