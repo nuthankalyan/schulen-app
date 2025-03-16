@@ -9,8 +9,7 @@ import {
   faProjectDiagram, 
   faFolderOpen, 
   faEnvelope, 
-  faSignOutAlt, 
-  faArrowLeft 
+  faSignOutAlt 
 } from '@fortawesome/free-solid-svg-icons';
 
 Modal.setAppElement('#root'); // Set the root element for accessibility
@@ -25,7 +24,7 @@ export const BrowseProjects = () => {
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const navigate = useNavigate();
     const userId = localStorage.getItem('userId'); // Assuming userId is stored in localStorage
-    console.log(userId)
+    
     // Load projects from the backend when the component mounts
     useEffect(() => {
         const fetchProjects = async () => {
@@ -160,7 +159,7 @@ export const BrowseProjects = () => {
                         </Link>
                     </li>
                     <li>
-                        <Link to="/my-projects">
+                        <Link to="/main/myprojects">
                             <FontAwesomeIcon icon={faFolderOpen} className="nav-icon" />
                             <span>My Projects</span>
                         </Link>

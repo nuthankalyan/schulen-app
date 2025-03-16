@@ -15,7 +15,7 @@ export const Main = () => {
             <nav className="main_elements">
                 <ul>
                     <li><Link to="/main/browseprojects">Browse Projects</Link></li>
-                    <li><Link to="/my-projects">My Projects</Link></li>
+                    <li><Link to="/main/myprojects">My Projects</Link></li>
                     <li><Link to="/messages">Messages</Link></li>
                     <li><button onClick={handleLogout}>Logout</button></li>
                 </ul>
