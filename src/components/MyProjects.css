@@ -1,0 +1,124 @@
+/* Import the base styles from BrowserProjects.css */
+@import './BrowserProjects.css';
+
+/* My Projects specific styles */
+.my-projects-container {
+    width: 100%;
+    padding: 20px 0;
+}
+
+.section {
+    margin-bottom: 40px;
+    border-bottom: 1px solid rgba(41, 44, 88, 0.1);
+    padding-bottom: 30px;
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    color: rgb(41, 44, 88);
+    font-size: 1.5rem;
+    font-weight: 700;
+    position: relative;
+    margin: 0;
+}
+
+.section-header h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background-color: rgb(41, 44, 88);
+}
+
+.create-project-button {
+    background-color: rgb(41, 44, 88);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.create-project-button:hover {
+    background-color: rgba(41, 44, 88, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-message, .empty-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 40px 0;
+    color: rgb(41, 44, 88);
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.empty-message p {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.create-first-project-button, .browse-projects-button {
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: 2px solid rgb(41, 44, 88);
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+}
+
+.create-first-project-button:hover, .browse-projects-button:hover {
+    background-color: rgb(41, 44, 88);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Project cards grid layout */
+.project-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .create-project-button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .project-cards {
+        justify-content: center;
+    }
+} 
