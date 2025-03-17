@@ -349,6 +349,19 @@ router.get('/user/:userId', async (req, res) => {
     }
 });
 
+// Get user's ID by username
+router.get('/user/byUsername/:username', async (req, res) => {
+    try {
+        const user = await User.findOne({ username: req.params.username });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json({ userId: user._id });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching user ID', error });
+    }
+});
+
 // Get recommended projects based on domain (excluding current project and user's own projects)
 router.get('/:id/recommended', authenticate, async (req, res) => {
     const { id } = req.params;

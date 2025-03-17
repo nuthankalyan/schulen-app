@@ -21,7 +21,7 @@ export const MyProjects = () => {
     const token = localStorage.getItem('token');
     const [userId, setUserId] = useState(localStorage.getItem('userId')); // This might be the actual userId if stored
     const [projectCreators, setProjectCreators] = useState({}); // Store username for each project creator
-
+    console.log(username);
     useEffect(() => {
         // Fetch the user's ID if not already stored
         if (!userId && username) {
@@ -178,90 +178,86 @@ export const MyProjects = () => {
 
         try {
             setLoading(true);
+            console.log('Fetching enrolled projects for user:', username);
             
-            // Use the new enrollments API endpoint
-            const userIdentifier = userIdToUse || username;
-            console.log('Fetching enrollments for user:', userIdentifier);
-            const response = await fetch(`${config.API_BASE_URL}/enrollments/user/${userIdentifier}`, {
+            // Use the main projects endpoint to get all projects
+            const response = await fetch(`${config.API_BASE_URL}/browseprojects`, {
                 headers: {
                     'Authorization': token
-                },
-                // Add timeout to prevent long waiting if endpoint doesn't respond
-                signal: AbortSignal.timeout(5000)
+                }
             });
             
             if (response.ok) {
-                const enrollmentsData = await response.json();
-                console.log('Enrollments data:', enrollmentsData);
+                const allProjects = await response.json();
+                console.log('All projects fetched:', allProjects.length);
                 
-                // Filter only accepted enrollments
-                const acceptedEnrollments = enrollmentsData.filter(enrollment => enrollment.status === "accepted");
-                console.log('Accepted enrollments:', acceptedEnrollments);
-                
-                if (acceptedEnrollments.length > 0) {
-                    // Extract the project details from the populated data
-                    const enrolledProjects = [];
+                // Filter projects where the current user is enrolled
+                // Look for projects with enrolledUsers array that includes the current username
+                const userEnrolledProjects = allProjects.filter(project => {
+                    console.log('Checking project:', project.title, 'enrolledUsers:', project.enrolledUsers);
                     
-                    // Check if projectId is a full object or just an ID
-                    for (const enrollment of acceptedEnrollments) {
-                        if (enrollment.projectId && typeof enrollment.projectId === 'object') {
-                            // If it's a full object, add it directly
-                            enrolledProjects.push(enrollment.projectId);
-                        } else {
-                            // If it's just an ID, we need to fetch the project details
-                            try {
-                                const projectResponse = await fetch(`${config.API_BASE_URL}/browseprojects/${enrollment.projectId}`);
-                                if (projectResponse.ok) {
-                                    const project = await projectResponse.json();
-                                    enrolledProjects.push(project);
-                                }
-                            } catch (error) {
-                                console.error('Error fetching project details:', error);
-                            }
+                    // Check if enrolledUsers exists and is an array
+                    if (project.enrolledUsers && Array.isArray(project.enrolledUsers)) {
+                        // If enrolledUsers contains objects with username property
+                        if (project.enrolledUsers.some(user => typeof user === 'object' && user.username === username)) {
+                            return true;
+                        }
+                        
+                        // If enrolledUsers contains user IDs, we need to check if the current user's ID is in the array
+                        if (userId && project.enrolledUsers.includes(userId)) {
+                            return true;
+                        }
+                        
+                        // If enrolledUsers contains usernames as strings
+                        if (project.enrolledUsers.includes(username)) {
+                            return true;
                         }
                     }
                     
-                    console.log('Enrolled projects:', enrolledProjects);
-                    setEnrolledProjects(enrolledProjects);
-                } else {
-                    console.log('No accepted enrollments found');
-                    setEnrolledProjects([]);
-                }
-                return;
+                    // Also check the legacy enrollment structure if it exists
+                    if (project.enrollments && Array.isArray(project.enrollments)) {
+                        return project.enrollments.some(enrollment => 
+                            enrollment.username === username && enrollment.status === 'accepted'
+                        );
+                    }
+                    
+                    return false;
+                });
+                
+                console.log('Filtered enrolled projects:', userEnrolledProjects);
+                setEnrolledProjects(userEnrolledProjects);
             } else {
-                console.error('Failed to fetch enrollments, status:', response.status);
+                console.error('Failed to fetch projects, status:', response.status);
+                setEnrolledProjects([]);
+            }
+        } catch (error) {
+            console.error('Error in fetchEnrolledProjects:', error);
+            
+            // Fallback to localStorage for stored enrollments
+            const storedEnrollments = localStorage.getItem('enrolledProjects');
+            if (storedEnrollments) {
+                console.log('Using stored enrollments from localStorage');
                 
-                // Fallback to localStorage for stored enrollments
-                const storedEnrollments = localStorage.getItem('enrolledProjects');
-                if (storedEnrollments) {
-                    console.log('Using stored enrollments from localStorage');
-                    
-                    try {
-                        // Fetch all projects
-                        const allProjectsResponse = await fetch(`${config.API_BASE_URL}/browseprojects`);
-                        if (allProjectsResponse.ok) {
-                            const allProjects = await allProjectsResponse.json();
-                            
-                            // Filter projects that match the stored enrolled project IDs
-                            const enrolledProjectIds = JSON.parse(storedEnrollments);
-                            const enrolledProjects = allProjects.filter(project => 
-                                enrolledProjectIds.includes(project._id)
-                            );
-                            
-                            setEnrolledProjects(enrolledProjects);
-                            return;
-                        }
-                    } catch (error) {
-                        console.error('Error fetching projects for stored enrollments:', error);
+                try {
+                    // Fetch all projects
+                    const allProjectsResponse = await fetch(`${config.API_BASE_URL}/browseprojects`);
+                    if (allProjectsResponse.ok) {
+                        const allProjects = await allProjectsResponse.json();
+                        
+                        // Filter projects that match the stored enrolled project IDs
+                        const enrolledProjectIds = JSON.parse(storedEnrollments);
+                        const enrolledProjects = allProjects.filter(project => 
+                            enrolledProjectIds.includes(project._id)
+                        );
+                        
+                        setEnrolledProjects(enrolledProjects);
+                        return;
                     }
+                } catch (error) {
+                    console.error('Error fetching projects for stored enrollments:', error);
                 }
             }
             
-            // If all else fails, use empty array
-            setEnrolledProjects([]);
-            
-        } catch (error) {
-            console.error('Error in fetchEnrolledProjects:', error);
             setEnrolledProjects([]);
         } finally {
             setLoading(false);
@@ -281,7 +277,7 @@ export const MyProjects = () => {
                 const response = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': token
                     }
                 });
 
@@ -306,7 +302,7 @@ export const MyProjects = () => {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': token
                 },
                 body: JSON.stringify({ status: newStatus })
             });
@@ -324,6 +320,37 @@ export const MyProjects = () => {
         } catch (error) {
             console.error('Error changing project status:', error);
             alert('An error occurred while changing the project status');
+        }
+    };
+
+    const handleEnrollment = async (projectId) => {
+        if (!username || !token) {
+            alert('Please log in to enroll in projects');
+            return;
+        }
+
+        try {
+            // Update the project with the enrollment information
+            const response = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}/enroll`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({ username })
+            });
+
+            if (response.ok) {
+                alert('Enrollment request sent successfully!');
+                // Refresh the enrolled projects list
+                fetchEnrolledProjects();
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to enroll: ${errorData.message || response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error enrolling in project:', error);
+            alert('An error occurred while enrolling in the project.');
         }
     };
 
