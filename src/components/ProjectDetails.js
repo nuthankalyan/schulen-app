@@ -13,7 +13,8 @@ import {
   faTimes, 
   faThumbsUp,
   faArrowLeft,
-  faHistory
+  faHistory,
+  faEye
 } from '@fortawesome/free-solid-svg-icons';
 
 // Use faClose as an alias for faTimes
@@ -27,6 +28,7 @@ export const ProjectDetails = () => {
   const [recommendedProjects, setRecommendedProjects] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activityPanelOpen, setActivityPanelOpen] = useState(false);
+  const [viewCount, setViewCount] = useState(0);
   const [enrollmentStatus, setEnrollmentStatus] = useState({
     isEnrolled: false,
     isOwner: false,
@@ -55,6 +57,11 @@ export const ProjectDetails = () => {
       // Always update project data when fetching a new project
       setProject(data);
       
+      // Set view count if available
+      if (data.viewCount !== undefined) {
+        setViewCount(data.viewCount);
+      }
+      
       // Always fetch owner's username for the new project
       const ownerResponse = await fetch(`${config.API_BASE_URL}/browseprojects/user/${data.userId}`);
       if (ownerResponse.ok) {
@@ -74,6 +81,28 @@ export const ProjectDetails = () => {
       setLoading(false);
     }
   }, [id]); // Only depend on id to prevent unnecessary recreations
+
+  // Increment view count when project is viewed
+  const incrementViewCount = useCallback(async () => {
+    if (!id) return;
+    
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': token })
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setViewCount(data.viewCount);
+      }
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  }, [id, token]);
 
   const fetchEnrollmentStatus = useCallback(async () => {
     if (!token) return;
@@ -252,8 +281,11 @@ export const ProjectDetails = () => {
       
       try {
         await fetchProject();
-        if (isMounted) await fetchEnrollmentStatus();
-        if (isMounted) await fetchActivities();
+        if (isMounted) {
+          await incrementViewCount(); // Increment view count when project is loaded
+          await fetchEnrollmentStatus();
+          await fetchActivities();
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -570,6 +602,10 @@ export const ProjectDetails = () => {
         
         <span id="project_title">{project.title}</span>
         <div id="project_user">by {ownerUsername}</div>
+        <div className="view-count-box">
+          <FontAwesomeIcon icon={faEye} className="view-icon" />
+          <span>{viewCount} view{viewCount !== 1 ? 's' : ''}</span>
+        </div>
       <div id="project_description_title">Project Description</div>    
       <div id="project_description">{project.description}</div>
       <div id="project_domain_title">Domain</div>

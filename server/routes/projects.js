@@ -411,4 +411,34 @@ router.get('/:id/activities', async (req, res) => {
     }
 });
 
+// Increment project view count
+router.post('/:id/view', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Initialize viewCount if it doesn't exist
+        if (!project.viewCount) {
+            project.viewCount = 0;
+        }
+        
+        // Increment view count
+        project.viewCount += 1;
+        
+        await project.save();
+        
+        res.status(200).json({ 
+            message: 'View count incremented successfully',
+            viewCount: project.viewCount
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error incrementing view count', error });
+    }
+});
+
 module.exports = router;

@@ -635,3 +635,20 @@
     color: #999;
     margin-top: 5px;
 }
+
+.view-count-box {
+    display: flex;
+    align-items: center;
+    background-color: rgba(41, 44, 88, 0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+    color: #292c58;
+    width: fit-content;
+}
+
+.view-icon {
+    margin-right: 8px;
+    color: #292c58;
+}

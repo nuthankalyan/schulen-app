@@ -16,6 +16,7 @@ const ProjectSchema = new mongoose.Schema({
         requestDate: { type: Date, default: Date.now }
     }],
     maxTeamSize: { type: Number, default: 4 },
+    viewCount: { type: Number, default: 0 },
     activities: [{
         type: { type: String, enum: ['status_change', 'enrollment_accepted', 'project_created', 'enrollment_request'] },
         timestamp: { type: Date, default: Date.now },
