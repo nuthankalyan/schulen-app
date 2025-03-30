@@ -441,4 +441,54 @@ router.post('/:id/view', async (req, res) => {
     }
 });
 
+// Check if user has access to project dashboard (owner or enrolled)
+router.get('/:id/access', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        // Find the project
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user is the owner
+        const isOwner = project.userId.toString() === userId;
+        
+        // Check if user is enrolled
+        let isEnrolled = false;
+        
+        // Check if enrolled as userId
+        if (project.enrolledUsers && project.enrolledUsers.length > 0) {
+            isEnrolled = project.enrolledUsers.some(enrolledUserId => 
+                enrolledUserId.toString() === userId
+            );
+        }
+        
+        // Check legacy enrollments
+        if (!isEnrolled && project.enrollments && Array.isArray(project.enrollments)) {
+            // Get user to check username
+            const user = await User.findById(userId);
+            const username = user ? user.username : null;
+            
+            if (username && project.enrollments.some(enrollment => 
+                enrollment.username === username && enrollment.status === 'accepted'
+            )) {
+                isEnrolled = true;
+            }
+        }
+        
+        // Return access status
+        res.json({ 
+            hasAccess: isOwner || isEnrolled,
+            isOwner,
+            isEnrolled
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error checking project access', error });
+    }
+});
+
 module.exports = router;

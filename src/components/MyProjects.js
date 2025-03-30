@@ -392,9 +392,14 @@ export const MyProjects = () => {
                         Enrolled
                     </div>
                 )}
-                <button className="view-project-button" onClick={() => navigate(`/main/browseprojects/${project._id}`)}>
-                    View Project
-                </button>
+                <div className="project-card-actions">
+                    <button className="view-project-button" onClick={() => navigate(`/main/browseprojects/${project._id}`)}>
+                        View Project
+                    </button>
+                    <button className="dashboard-button" onClick={() => navigate(`/main/project-dashboard/${project._id}`)}>
+                        Dashboard
+                    </button>
+                </div>
             </div>
         </div>
     );

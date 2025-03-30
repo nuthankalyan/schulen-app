@@ -119,7 +119,7 @@ nav ul li a:hover::after {
   box-shadow: 0 4px 8px rgba(41, 44, 88, 0.2);
 }
 
-/* Hero section with neon animation */
+/* -con section with neon animation */
 .hero {
   display: flex;
   min-height: 100vh;
@@ -177,10 +177,10 @@ nav ul li a:hover::after {
   font-weight: 800;
   line-height: 1.2;
   margin-bottom: 1.5rem;
-  background: linear-gradient(to right, rgb(255, 255, 255), rgb(200, 200, 255));
+  background: linear-gradient(to right, rgb(255, 255, 255), rgb(243, 243, 243));
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  color: rgb(204, 203, 203);
   text-shadow: 0 0 10px rgba(41, 44, 88, 0.7),
                0 0 20px rgba(41, 44, 88, 0.5),
                0 0 30px rgba(41, 44, 88, 0.3);

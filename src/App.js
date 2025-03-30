@@ -8,6 +8,7 @@ import { Main } from './components/Main';
 import { BrowseProjects } from './components/BrowserProjects';
 import { ProjectDetails } from './components/ProjectDetails';
 import { MyProjects } from './components/MyProjects';
+import { ProjectDashboard } from './components/ProjectDashboard';
 
 const PrivateRoute = ({ element: Component, ...rest }) => {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -25,6 +26,7 @@ function App() {
       <Route path="/main/browseprojects" element={<PrivateRoute element={BrowseProjects} />} />
       <Route path="/main/browseprojects/:id" element={<PrivateRoute element={ProjectDetails} />} />
       <Route path="/main/myprojects" element={<PrivateRoute element={MyProjects} />} />
+      <Route path="/main/project-dashboard/:id" element={<PrivateRoute element={ProjectDashboard} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

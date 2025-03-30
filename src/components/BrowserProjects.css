@@ -401,7 +401,7 @@
     bottom: 1px;
     right: 10px;
     width: fit-content;
-    background-color: white;
+    background-color: white !important;
     color: rgb(41, 44, 88);
     border: none;
     border-radius: 5px;

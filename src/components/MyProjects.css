@@ -105,6 +105,69 @@
     gap: 20px;
 }
 
+/* Project card footer and buttons */
+.project-card-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.project-card-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    position: absolute;
+    bottom: 7px;
+    right: 10px;
+}
+
+.view-project-button, .dashboard-button {
+    padding: 15px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.8rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    height: 30px;
+    line-height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.view-project-button {
+    background-color: rgba(41, 44, 88, 0.9);
+    color: white;
+    border: none;
+    width: fit-content;
+    
+}
+
+.view-project-button:hover {
+    background-color: rgb(41, 44, 88);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-button {
+    background-color: white;
+    color: rgb(41, 44, 88);
+    border: 2px solid rgb(41, 44, 88);
+    width: fit-content;
+    margin-left: 10%;
+}
+
+.dashboard-button:hover {
+    background-color: rgb(217, 217, 217);
+    color: rgb(41, 44, 88);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .section-header {
@@ -120,5 +183,9 @@
     
     .project-cards {
         justify-content: center;
+    }
+    
+    .project-card-actions {
+        flex-direction: row;
     }
 } 
