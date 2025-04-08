@@ -600,6 +600,11 @@ export const ProjectDashboard = () => {
 
   // Handle deleting a task
   const handleDeleteTask = async (taskId) => {
+    // Show confirmation dialog
+    if (!window.confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+    
     // Delete from server first
     const success = await deleteTaskFromServer(taskId);
     
@@ -623,6 +628,34 @@ export const ProjectDashboard = () => {
       }
       
       setTasks(updatedTasks);
+      console.log(`Task ${taskId} deleted successfully`);
+    } else {
+      // If server deletion failed, ask if user wants to remove from UI anyway
+      const removeFromUI = window.confirm(
+        'Failed to delete task from server. Would you like to remove it from the dashboard anyway?'
+      );
+      
+      if (removeFromUI) {
+        const updatedTasks = { ...tasks };
+        
+        // Find which column contains the task
+        for (const [col, taskList] of Object.entries(tasks)) {
+          const index = taskList.findIndex(t => t.id === taskId);
+          if (index >= 0) {
+            // If deleting from completed column, update contribution data
+            if (col === 'completed') {
+              const task = taskList[index];
+              decreaseContributionData(task.assignee);
+            }
+            
+            updatedTasks[col] = taskList.filter(t => t.id !== taskId);
+            break;
+          }
+        }
+        
+        setTasks(updatedTasks);
+        console.log(`Task ${taskId} removed from UI only`);
+      }
     }
   };
 
@@ -683,22 +716,36 @@ export const ProjectDashboard = () => {
   const deleteTaskFromServer = async (taskId) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Log the task ID and project ID for debugging
+      console.log(`Attempting to delete task ${taskId} from project ${id}`);
+      
+      // The server has a specific endpoint for deleting tasks: /:id/tasks/:taskId
+      // This is defined in the server routes
       const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': token
+          'Authorization': token,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to delete task');
+        // Get more details about the error
+        const errorText = await response.text();
+        console.error(`Server responded with status ${response.status}: ${errorText}`);
+        
+        // If the API attempt fails, we'll still allow the user to remove the task from the UI
+        console.log('API deletion attempt failed, but we will still allow UI removal');
+        return false;
       }
       
       console.log('Task deleted successfully');
       return true;
     } catch (error) {
       console.error('Error deleting task:', error);
-      // You might want to show an error message to the user here
+      // Show a more detailed error message to the user
+      alert(`Failed to delete task: ${error.message}`);
       return false;
     }
   };

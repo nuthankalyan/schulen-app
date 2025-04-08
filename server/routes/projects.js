@@ -728,7 +728,7 @@ router.delete('/:id/tasks/:taskId', authenticate, async (req, res) => {
 
         // Add activity for task deletion
         project.activities.push({
-            type: 'task_deleted',
+            type: 'task_updated',
             userId,
             username,
             details: `Deleted task: ${task.title}`,
