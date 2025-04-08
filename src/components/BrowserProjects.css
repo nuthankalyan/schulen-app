@@ -106,6 +106,7 @@
     margin-bottom: 30px;
     flex-wrap: wrap;
     gap: 15px;
+    margin-top: 50px; /* Add margin-top to create space below the header */
 }
 
 .content button{
@@ -497,10 +498,10 @@
     display: flex;
     align-items: center;
     gap: 15px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .search-container {
-    top: 40%;
     position: relative;
     width: 300px;
 }
