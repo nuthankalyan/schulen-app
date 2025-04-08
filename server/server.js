@@ -16,7 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // CORS configuration
 app.use((req, res, next) => {
-    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech'];
+    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech/'];
     const origin = req.headers.origin;
     
     if (allowedOrigins.includes(origin)) {
