@@ -180,7 +180,50 @@ export const MyProjects = () => {
             setLoading(true);
             console.log('Fetching enrolled projects for user:', username);
             
-            // Use the main projects endpoint to get all projects
+            // First, try to fetch the user's enrolled projects directly from the user document
+            try {
+                const userResponse = await fetch(`${config.API_BASE_URL}/users/${username}`, {
+                    headers: {
+                        'Authorization': token
+                    }
+                });
+                
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    console.log('User data with enrolled projects:', userData);
+                    
+                    // Check if the user has enrolled projects
+                    if (userData.enrolledProjects && userData.enrolledProjects.length > 0) {
+                        console.log('Found enrolled projects in user data:', userData.enrolledProjects);
+                        
+                        // Fetch the full project details for each enrolled project
+                        const enrolledProjectsPromises = userData.enrolledProjects.map(async (projectId) => {
+                            const projectResponse = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}`, {
+                                headers: {
+                                    'Authorization': token
+                                }
+                            });
+                            
+                            if (projectResponse.ok) {
+                                return await projectResponse.json();
+                            } else {
+                                console.error(`Failed to fetch project ${projectId}:`, projectResponse.status);
+                                return null;
+                            }
+                        });
+                        
+                        const enrolledProjects = (await Promise.all(enrolledProjectsPromises)).filter(project => project !== null);
+                        console.log('Fetched enrolled projects:', enrolledProjects);
+                        
+                        setEnrolledProjects(enrolledProjects);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+            
+            // Fallback: Use the main projects endpoint to get all projects
             const response = await fetch(`${config.API_BASE_URL}/browseprojects`, {
                 headers: {
                     'Authorization': token
@@ -341,6 +384,44 @@ export const MyProjects = () => {
             });
 
             if (response.ok) {
+                // Also update the user's enrolledProjects array
+                try {
+                    const userResponse = await fetch(`${config.API_BASE_URL}/users/${username}/enroll`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': token
+                        },
+                        body: JSON.stringify({ projectId })
+                    });
+                    
+                    if (!userResponse.ok) {
+                        console.error('Failed to update user enrolled projects:', userResponse.status);
+                    } else {
+                        console.log('Successfully updated user enrolled projects');
+                    }
+                } catch (error) {
+                    console.error('Error updating user enrolled projects:', error);
+                }
+                
+                // Store the enrolled project ID in localStorage
+                const storedEnrollments = localStorage.getItem('enrolledProjects');
+                let enrolledProjectIds = [];
+                
+                if (storedEnrollments) {
+                    try {
+                        enrolledProjectIds = JSON.parse(storedEnrollments);
+                    } catch (error) {
+                        console.error('Error parsing stored enrollments:', error);
+                        enrolledProjectIds = [];
+                    }
+                }
+                
+                if (!enrolledProjectIds.includes(projectId)) {
+                    enrolledProjectIds.push(projectId);
+                    localStorage.setItem('enrolledProjects', JSON.stringify(enrolledProjectIds));
+                }
+                
                 alert('Enrollment request sent successfully!');
                 // Refresh the enrolled projects list
                 fetchEnrolledProjects();
