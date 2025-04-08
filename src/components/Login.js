@@ -43,7 +43,7 @@ export const Login = () => {
                 
                 // Delay navigation to show success animation
                 setTimeout(() => {
-                    navigate('/main');
+                    navigate('/main/myprojects');
                 }, 1000);
             } else {
                 setFormError(data.message || 'Login failed. Please check your credentials.');
