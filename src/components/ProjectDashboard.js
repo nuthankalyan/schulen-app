@@ -11,8 +11,78 @@ import {
   faFileAlt,
   faComments,
   faArrowLeft,
-  faCog
+  faCog,
+  faEdit,
+  faTrash,
+  faPlus,
+  faComment,
+  faUser,
+  faBars,
+  faColumns,
+  faVideo,
+  faChalkboard,
+  faBook,
+  faCode
 } from '@fortawesome/free-solid-svg-icons';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+// StrictMode compatibility for react-beautiful-dnd
+// This is needed because React 18 StrictMode causes issues with the library
+const StrictModeDroppable = ({ children, ...props }) => {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const animation = requestAnimationFrame(() => setEnabled(true));
+    return () => {
+      cancelAnimationFrame(animation);
+      setEnabled(false);
+    };
+  }, []);
+
+  if (!enabled) {
+    return null;
+  }
+
+  return <Droppable {...props}>{children}</Droppable>;
+};
+
+// Sample task data structure
+const initialTasks = {
+  'not-started': [],
+  'in-progress': [],
+  'completed': []
+};
+
+// Sample user contribution data
+const initialContributions = {
+  labels: [],
+  datasets: [
+    {
+      label: 'Task Completion',
+      data: [],
+      backgroundColor: [
+        'rgba(255, 99, 132, 0.6)',
+        'rgba(54, 162, 235, 0.6)',
+        'rgba(255, 206, 86, 0.6)',
+        'rgba(75, 192, 192, 0.6)',
+        'rgba(153, 102, 255, 0.6)',
+      ],
+      borderColor: [
+        'rgba(255, 99, 132, 1)',
+        'rgba(54, 162, 235, 1)',
+        'rgba(255, 206, 86, 1)',
+        'rgba(75, 192, 192, 1)',
+        'rgba(153, 102, 255, 1)',
+      ],
+      borderWidth: 1,
+    },
+  ],
+};
 
 export const ProjectDashboard = () => {
   const { id } = useParams();
@@ -20,8 +90,13 @@ export const ProjectDashboard = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('kanban');
   const [hasAccess, setHasAccess] = useState(false);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [contributions, setContributions] = useState(initialContributions);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [newTask, setNewTask] = useState({ title: '', description: '', assignee: '' });
   
   const token = localStorage.getItem('token');
   const username = localStorage.getItem('username');
@@ -119,8 +194,210 @@ export const ProjectDashboard = () => {
     fetchProject();
   }, [fetchProject]);
 
+  // Load mock tasks and contributions data (this would come from an API in a real application)
+  useEffect(() => {
+    if (project) {
+      // Mock tasks
+      const mockTasks = {
+        'not-started': [
+          { id: 'task-1', title: 'Create project plan', description: 'Outline the project scope and timeline', assignee: username },
+          { id: 'task-2', title: 'Define requirements', description: 'Document functional requirements', assignee: project.ownerUsername }
+        ],
+        'in-progress': [
+          { id: 'task-3', title: 'Design UI mockups', description: 'Create wireframes and prototypes', assignee: username }
+        ],
+        'completed': [
+          { id: 'task-4', title: 'Project kickoff', description: 'Initial team meeting', assignee: project.ownerUsername }
+        ]
+      };
+      
+      setTasks(mockTasks);
+      
+      // Mock contribution data
+      const users = [username, project.ownerUsername];
+      const completedTasksCount = {
+        [username]: mockTasks.completed.filter(task => task.assignee === username).length,
+        [project.ownerUsername]: mockTasks.completed.filter(task => task.assignee === project.ownerUsername).length
+      };
+      
+      setContributions({
+        labels: users,
+        datasets: [
+          {
+            label: 'Completed Tasks',
+            data: users.map(user => completedTasksCount[user] || 0),
+            backgroundColor: [
+              'rgba(54, 162, 235, 0.6)',
+              'rgba(255, 99, 132, 0.6)',
+            ],
+            borderColor: [
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 99, 132, 1)',
+            ],
+            borderWidth: 1,
+          },
+        ],
+      });
+    }
+  }, [project, username]);
+
   const handleBackToProjects = () => {
     navigate('/main/myprojects');
+  };
+
+  // Handle drag and drop
+  const onDragEnd = (result) => {
+    const { source, destination } = result;
+    
+    // Dropped outside a droppable area
+    if (!destination) return;
+    
+    // No change in position
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) return;
+    
+    // Moving within the same column
+    if (source.droppableId === destination.droppableId) {
+      const column = Array.from(tasks[source.droppableId]);
+      const [removed] = column.splice(source.index, 1);
+      column.splice(destination.index, 0, removed);
+      
+      setTasks({
+        ...tasks,
+        [source.droppableId]: column
+      });
+      return;
+    }
+    
+    // Moving from one column to another
+    const sourceColumn = Array.from(tasks[source.droppableId]);
+    const destColumn = Array.from(tasks[destination.droppableId]);
+    const [removed] = sourceColumn.splice(source.index, 1);
+    destColumn.splice(destination.index, 0, removed);
+    
+    // If moving to completed column, update contribution data
+    if (destination.droppableId === 'completed' && source.droppableId !== 'completed') {
+      const assignee = removed.assignee;
+      updateContributionData(assignee);
+    } else if (source.droppableId === 'completed' && destination.droppableId !== 'completed') {
+      const assignee = removed.assignee;
+      decreaseContributionData(assignee);
+    }
+    
+    setTasks({
+      ...tasks,
+      [source.droppableId]: sourceColumn,
+      [destination.droppableId]: destColumn
+    });
+  };
+
+  // Update contribution data when a task is moved to completed
+  const updateContributionData = (assignee) => {
+    const newContributions = { ...contributions };
+    const index = newContributions.labels.indexOf(assignee);
+    
+    if (index >= 0) {
+      newContributions.datasets[0].data[index]++;
+    } else {
+      newContributions.labels.push(assignee);
+      newContributions.datasets[0].data.push(1);
+    }
+    
+    setContributions(newContributions);
+  };
+
+  // Decrease contribution data when a task is moved from completed
+  const decreaseContributionData = (assignee) => {
+    const newContributions = { ...contributions };
+    const index = newContributions.labels.indexOf(assignee);
+    
+    if (index >= 0) {
+      newContributions.datasets[0].data[index] = Math.max(0, newContributions.datasets[0].data[index] - 1);
+    }
+    
+    setContributions(newContributions);
+  };
+
+  // Handle creating a new task
+  const handleCreateTask = () => {
+    if (!newTask.title) return;
+    
+    const taskId = `task-${Date.now()}`;
+    const task = {
+      id: taskId,
+      title: newTask.title,
+      description: newTask.description || '',
+      assignee: newTask.assignee || username
+    };
+    
+    setTasks({
+      ...tasks,
+      'not-started': [...tasks['not-started'], task]
+    });
+    
+    setNewTask({ title: '', description: '', assignee: '' });
+    setIsCreateTaskModalOpen(false);
+  };
+
+  // Handle editing a task
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setNewTask({
+      title: task.title,
+      description: task.description,
+      assignee: task.assignee
+    });
+    setIsCreateTaskModalOpen(true);
+  };
+
+  // Handle updating a task
+  const handleUpdateTask = () => {
+    const updatedTasks = { ...tasks };
+    
+    // Find which column contains the task
+    let columnId = '';
+    for (const [col, taskList] of Object.entries(tasks)) {
+      const index = taskList.findIndex(t => t.id === editingTask.id);
+      if (index >= 0) {
+        columnId = col;
+        updatedTasks[col][index] = {
+          ...editingTask,
+          title: newTask.title,
+          description: newTask.description,
+          assignee: newTask.assignee
+        };
+        break;
+      }
+    }
+    
+    setTasks(updatedTasks);
+    setEditingTask(null);
+    setNewTask({ title: '', description: '', assignee: '' });
+    setIsCreateTaskModalOpen(false);
+  };
+
+  // Handle deleting a task
+  const handleDeleteTask = (taskId) => {
+    const updatedTasks = { ...tasks };
+    
+    // Find which column contains the task
+    for (const [col, taskList] of Object.entries(tasks)) {
+      const index = taskList.findIndex(t => t.id === taskId);
+      if (index >= 0) {
+        // If deleting from completed column, update contribution data
+        if (col === 'completed') {
+          const task = taskList[index];
+          decreaseContributionData(task.assignee);
+        }
+        
+        updatedTasks[col] = taskList.filter(t => t.id !== taskId);
+        break;
+      }
+    }
+    
+    setTasks(updatedTasks);
   };
 
   // Render loading state
@@ -168,183 +445,308 @@ export const ProjectDashboard = () => {
         </button>
         <h1>{project?.title || 'Project Dashboard'}</h1>
         <div className="dashboard-actions">
-          <button className="settings-button">
-            <FontAwesomeIcon icon={faCog} /> Settings
+          <button className="messages-button">
+            <FontAwesomeIcon icon={faComment} /> Messages
+          </button>
+          <button className="profile-button">
+            <FontAwesomeIcon icon={faUser} /> Profile
           </button>
         </div>
       </div>
 
-      {/* Dashboard Navigation */}
-      <div className="dashboard-navigation">
-        <button 
-          className={activeTab === 'overview' ? 'active' : ''} 
-          onClick={() => setActiveTab('overview')}
-        >
-          <FontAwesomeIcon icon={faChartLine} /> Overview
-        </button>
-        <button 
-          className={activeTab === 'tasks' ? 'active' : ''} 
-          onClick={() => setActiveTab('tasks')}
-        >
-          <FontAwesomeIcon icon={faTasks} /> Tasks
-        </button>
-        <button 
-          className={activeTab === 'team' ? 'active' : ''} 
-          onClick={() => setActiveTab('team')}
-        >
-          <FontAwesomeIcon icon={faUsers} /> Team
-        </button>
-        <button 
-          className={activeTab === 'documents' ? 'active' : ''} 
-          onClick={() => setActiveTab('documents')}
-        >
-          <FontAwesomeIcon icon={faFileAlt} /> Documents
-        </button>
-        <button 
-          className={activeTab === 'calendar' ? 'active' : ''} 
-          onClick={() => setActiveTab('calendar')}
-        >
-          <FontAwesomeIcon icon={faCalendarAlt} /> Calendar
-        </button>
-        <button 
-          className={activeTab === 'discussions' ? 'active' : ''} 
-          onClick={() => setActiveTab('discussions')}
-        >
-          <FontAwesomeIcon icon={faComments} /> Discussions
-        </button>
-      </div>
+      <div className="dashboard-layout">
+        {/* Sidebar Navigation */}
+        <div className="dashboard-sidebar">
+          <button 
+            className={activeTab === 'kanban' ? 'active' : ''} 
+            onClick={() => setActiveTab('kanban')}
+          >
+            <FontAwesomeIcon icon={faColumns} /> Kanban Chart
+          </button>
+          <button 
+            className={activeTab === 'virtual-meet' ? 'active' : ''} 
+            onClick={() => setActiveTab('virtual-meet')}
+          >
+            <FontAwesomeIcon icon={faVideo} /> Virtual Meet
+          </button>
+          <button 
+            className={activeTab === 'whiteboard' ? 'active' : ''} 
+            onClick={() => setActiveTab('whiteboard')}
+          >
+            <FontAwesomeIcon icon={faChalkboard} /> White Board
+          </button>
+          <button 
+            className={activeTab === 'resources' ? 'active' : ''} 
+            onClick={() => setActiveTab('resources')}
+          >
+            <FontAwesomeIcon icon={faBook} /> Resource Library
+          </button>
+          <button 
+            className={activeTab === 'ide' ? 'active' : ''} 
+            onClick={() => setActiveTab('ide')}
+          >
+            <FontAwesomeIcon icon={faCode} /> IDE
+          </button>
+        </div>
 
-      {/* Dashboard Content */}
-      <div className="dashboard-content">
-        {activeTab === 'overview' && (
-          <div className="dashboard-overview">
-            <div className="overview-section status">
-              <h3>Project Status</h3>
-              <div className={`status-badge ${project?.status.toLowerCase()}`}>
-                {project?.status || 'Unknown'}
+        {/* Dashboard Content */}
+        <div className="dashboard-content">
+          {activeTab === 'kanban' && (
+            <div className="kanban-view">
+              <div className="section-header">
+                <h3>Task Management</h3>
+                <button className="add-button" onClick={() => setIsCreateTaskModalOpen(true)}>
+                  <FontAwesomeIcon icon={faPlus} /> Create Task
+                </button>
               </div>
-              <p>Domain: {project?.domain || 'Not specified'}</p>
-              <p>Deadline: {project?.deadline || 'Not specified'}</p>
-            </div>
 
-            <div className="overview-section description">
-              <h3>Description</h3>
-              <p>{project?.description || 'No description available'}</p>
-            </div>
-
-            <div className="overview-section quick-stats">
-              <h3>Quick Stats</h3>
-              <div className="stats-grid">
-                <div className="stat-item">
-                  <FontAwesomeIcon icon={faUsers} />
-                  <div className="stat-value">{project?.enrolledUsers?.length || 0}</div>
-                  <div className="stat-label">Team Members</div>
-                </div>
-                <div className="stat-item">
-                  <FontAwesomeIcon icon={faTasks} />
-                  <div className="stat-value">0</div>
-                  <div className="stat-label">Tasks</div>
-                </div>
-                <div className="stat-item">
-                  <FontAwesomeIcon icon={faFileAlt} />
-                  <div className="stat-value">0</div>
-                  <div className="stat-label">Documents</div>
-                </div>
-                <div className="stat-item">
-                  <FontAwesomeIcon icon={faComments} />
-                  <div className="stat-value">0</div>
-                  <div className="stat-label">Comments</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'tasks' && (
-          <div className="dashboard-tasks">
-            <div className="section-header">
-              <h3>Project Tasks</h3>
-              <button className="add-button">+ Add Task</button>
-            </div>
-            <div className="empty-state">
-              <p>No tasks have been added to this project yet.</p>
-              <button>Create your first task</button>
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'team' && (
-          <div className="dashboard-team">
-            <div className="section-header">
-              <h3>Team Members</h3>
-              <button className="add-button">+ Invite Member</button>
-            </div>
-            <div className="team-list">
-              {project?.enrolledUsers?.length > 0 ? (
-                <div className="team-grid">
-                  {/* Owner */}
-                  <div className="team-member owner">
-                    <div className="member-avatar">
-                      {project.ownerUsername?.substring(0, 1) || 'O'}
+              {/* Kanban Board */}
+              <DragDropContext onDragEnd={onDragEnd}>
+                <div className="kanban-board">
+                  <div className="kanban-column not-started-column">
+                    <div className="kanban-column-header">
+                      <h4>Not Yet Started</h4>
                     </div>
-                    <div className="member-info">
-                      <h4>{project.ownerUsername || 'Project Owner'}</h4>
-                      <span className="role">Owner</span>
-                    </div>
+                    <StrictModeDroppable droppableId="not-started">
+                      {(provided) => (
+                        <div
+                          className="task-list"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          {tasks["not-started"] && tasks["not-started"].map((task, index) => (
+                            <Draggable key={task.id} draggableId={task.id} index={index}>
+                              {(provided) => (
+                                <div
+                                  className="task-card"
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                >
+                                  <div className="task-content">
+                                    <h5>{task.title}</h5>
+                                    <p>{task.description}</p>
+                                    <span className="task-assignee">Assigned to: {task.assignee}</span>
+                                  </div>
+                                  <div className="task-actions">
+                                    <button onClick={() => handleEditTask(task)}>
+                                      <FontAwesomeIcon icon={faEdit} />
+                                    </button>
+                                    <button onClick={() => handleDeleteTask(task.id)}>
+                                      <FontAwesomeIcon icon={faTrash} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </StrictModeDroppable>
                   </div>
-                  
-                  {/* Other team members would go here */}
-                  <p>Other team members will appear here</p>
+
+                  <div className="kanban-column in-progress-column">
+                    <div className="kanban-column-header">
+                      <h4>In Progress</h4>
+                    </div>
+                    <StrictModeDroppable droppableId="in-progress">
+                      {(provided) => (
+                        <div
+                          className="task-list"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          {tasks["in-progress"] && tasks["in-progress"].map((task, index) => (
+                            <Draggable key={task.id} draggableId={task.id} index={index}>
+                              {(provided) => (
+                                <div
+                                  className="task-card"
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                >
+                                  <div className="task-content">
+                                    <h5>{task.title}</h5>
+                                    <p>{task.description}</p>
+                                    <span className="task-assignee">Assigned to: {task.assignee}</span>
+                                  </div>
+                                  <div className="task-actions">
+                                    <button onClick={() => handleEditTask(task)}>
+                                      <FontAwesomeIcon icon={faEdit} />
+                                    </button>
+                                    <button onClick={() => handleDeleteTask(task.id)}>
+                                      <FontAwesomeIcon icon={faTrash} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </StrictModeDroppable>
+                  </div>
+
+                  <div className="kanban-column completed-column">
+                    <div className="kanban-column-header">
+                      <h4>Completed</h4>
+                    </div>
+                    <StrictModeDroppable droppableId="completed">
+                      {(provided) => (
+                        <div
+                          className="task-list"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          {tasks["completed"] && tasks["completed"].map((task, index) => (
+                            <Draggable key={task.id} draggableId={task.id} index={index}>
+                              {(provided) => (
+                                <div
+                                  className="task-card"
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                >
+                                  <div className="task-content">
+                                    <h5>{task.title}</h5>
+                                    <p>{task.description}</p>
+                                    <span className="task-assignee">Assigned to: {task.assignee}</span>
+                                  </div>
+                                  <div className="task-actions">
+                                    <button onClick={() => handleEditTask(task)}>
+                                      <FontAwesomeIcon icon={faEdit} />
+                                    </button>
+                                    <button onClick={() => handleDeleteTask(task.id)}>
+                                      <FontAwesomeIcon icon={faTrash} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </StrictModeDroppable>
+                  </div>
                 </div>
-              ) : (
-                <div className="empty-state">
-                  <p>No team members have been added to this project yet.</p>
-                  <button>Invite team members</button>
+              </DragDropContext>
+
+              {/* Contribution Section */}
+              <div className="contribution-section">
+                <h3>Contribution</h3>
+                <div className="contribution-chart">
+                  <Pie data={contributions} options={{ responsive: true, maintainAspectRatio: true }} />
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        )}
-        
-        {activeTab === 'documents' && (
-          <div className="dashboard-documents">
-            <div className="section-header">
-              <h3>Project Documents</h3>
-              <button className="add-button">+ Add Document</button>
+          )}
+
+          {activeTab === 'virtual-meet' && (
+            <div className="virtual-meet-view">
+              <div className="section-header">
+                <h3>Virtual Meet</h3>
+              </div>
+              <div className="empty-state">
+                <p>Virtual meeting functionality is not yet implemented.</p>
+                <button>Set up a meeting</button>
+              </div>
             </div>
-            <div className="empty-state">
-              <p>No documents have been added to this project yet.</p>
-              <button>Upload your first document</button>
+          )}
+
+          {activeTab === 'whiteboard' && (
+            <div className="whiteboard-view">
+              <div className="section-header">
+                <h3>White Board</h3>
+              </div>
+              <div className="empty-state">
+                <p>Whiteboard functionality is not yet implemented.</p>
+                <button>Start collaborating</button>
+              </div>
             </div>
-          </div>
-        )}
-        
-        {activeTab === 'calendar' && (
-          <div className="dashboard-calendar">
-            <div className="section-header">
-              <h3>Project Calendar</h3>
-              <button className="add-button">+ Add Event</button>
+          )}
+
+          {activeTab === 'resources' && (
+            <div className="resources-view">
+              <div className="section-header">
+                <h3>Resource Library and Knowledge Base</h3>
+                <button className="add-button">
+                  <FontAwesomeIcon icon={faPlus} /> Add Resource
+                </button>
+              </div>
+              <div className="empty-state">
+                <p>No resources have been added to this project yet.</p>
+                <button>Upload your first resource</button>
+              </div>
             </div>
-            <div className="empty-state">
-              <p>No events have been added to the calendar yet.</p>
-              <button>Create your first event</button>
+          )}
+
+          {activeTab === 'ide' && (
+            <div className="ide-view">
+              <div className="section-header">
+                <h3>Integrated Development Environment</h3>
+              </div>
+              <div className="empty-state">
+                <p>IDE functionality is not yet implemented.</p>
+                <button>Start coding</button>
+              </div>
             </div>
-          </div>
-        )}
-        
-        {activeTab === 'discussions' && (
-          <div className="dashboard-discussions">
-            <div className="section-header">
-              <h3>Project Discussions</h3>
-              <button className="add-button">+ New Discussion</button>
-            </div>
-            <div className="empty-state">
-              <p>No discussions have been started for this project yet.</p>
-              <button>Start the first discussion</button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Create/Edit Task Modal */}
+      {isCreateTaskModalOpen && (
+        <div className="modal-overlay">
+          <div className="task-modal">
+            <h3>{editingTask ? 'Edit Task' : 'Create Task'}</h3>
+            <div className="form-group">
+              <label>Title</label>
+              <input 
+                type="text" 
+                value={newTask.title} 
+                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                placeholder="Enter task title"
+              />
+            </div>
+            <div className="form-group">
+              <label>Description</label>
+              <textarea 
+                value={newTask.description} 
+                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                placeholder="Enter task description"
+              />
+            </div>
+            <div className="form-group">
+              <label>Assignee</label>
+              <input 
+                type="text" 
+                value={newTask.assignee} 
+                onChange={(e) => setNewTask({...newTask, assignee: e.target.value})}
+                placeholder="Enter assignee username"
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-button" onClick={() => {
+                setIsCreateTaskModalOpen(false);
+                setEditingTask(null);
+                setNewTask({ title: '', description: '', assignee: '' });
+              }}>
+                Cancel
+              </button>
+              <button 
+                className="save-button" 
+                onClick={editingTask ? handleUpdateTask : handleCreateTask}
+                disabled={!newTask.title}
+              >
+                {editingTask ? 'Update Task' : 'Create Task'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
