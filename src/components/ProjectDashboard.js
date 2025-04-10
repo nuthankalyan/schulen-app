@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProjectDashboard.css';
 import config from '../config';
 import { FontAwesomeIcon } from '../fontawesome';
+import MessagePanel from './MessagePanel';
 import { 
   faUsers, 
   faTasks,
@@ -24,32 +25,25 @@ import {
   faBook,
   faCode
 } from '@fortawesome/free-solid-svg-icons';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// StrictMode compatibility for react-beautiful-dnd
-// This is needed because React 18 StrictMode causes issues with the library
-const StrictModeDroppable = ({ children, ...props }) => {
-  const [enabled, setEnabled] = useState(false);
+// Define motion variants for the draggable items
+const itemVariants = {
+  initial: { opacity: 0.5, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
+  drag: { opacity: 0.9, scale: 1.05, boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.15)" }
+};
 
-  useEffect(() => {
-    // Using a timeout to prevent React 18 double-rendering issues
-    const animation = requestAnimationFrame(() => setEnabled(true));
-    return () => {
-      cancelAnimationFrame(animation);
-      setEnabled(false);
-    };
-  }, []);
-
-  if (!enabled) {
-    return null;
-  }
-
-  return <Droppable {...props}>{children}</Droppable>;
+// Define variants for the drop area highlighting
+const dropAreaVariants = {
+  initial: { backgroundColor: "rgba(0, 0, 0, 0)" },
+  hover: { backgroundColor: "rgba(0, 0, 0, 0.05)" }
 };
 
 // Sample task data structure
@@ -73,6 +67,81 @@ const initialContributions = {
   ],
 };
 
+// Task component with Framer Motion
+const Task = ({ task, index, columnId, onEdit, onDelete, onDragEnd }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  return (
+    <motion.div
+      layout
+      className="task-card"
+      variants={itemVariants}
+      initial="initial"
+      animate={isDragging ? "drag" : "animate"}
+      exit="exit"
+      drag={true}
+      dragSnapToOrigin={false}
+      dragMomentum={false}
+      dragElastic={0.1}
+      whileDrag={{ 
+        scale: 1.05, 
+        boxShadow: "0px 10px 25px rgba(0,0,0,0.2)",
+        zIndex: 100,
+        cursor: "grabbing"
+      }}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={(event, info) => {
+        setIsDragging(false);
+        onDragEnd(event, info, task, columnId);
+      }}
+    >
+      <div className="task-content">
+        <h5>{task.title}</h5>
+        <p>{task.description}</p>
+        <span className="task-assignee">Assigned to: {task.assignee}</span>
+      </div>
+      <div className="task-actions">
+        <button onClick={() => onEdit(task)}>
+          <FontAwesomeIcon icon={faEdit} />
+        </button>
+        <button onClick={() => onDelete(task.id)}>
+          <FontAwesomeIcon icon={faTrash} />
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// KanbanColumn component with Framer Motion
+const KanbanColumn = ({ title, status, tasks, onEditTask, onDeleteTask, onDragEnd, color }) => {
+  return (
+    <div className={`kanban-column ${status}-column`}>
+      <div className="kanban-column-header" style={{ backgroundColor: color }}>
+        <h4>{title}</h4>
+      </div>
+      <motion.div
+        className="task-list"
+        data-status={status}
+        whileHover={{ backgroundColor: "rgba(0,0,0,0.03)" }}
+      >
+        <AnimatePresence>
+          {tasks.map((task, index) => (
+            <Task 
+              key={task.id}
+              task={task}
+              index={index}
+              columnId={status}
+              onEdit={onEditTask}
+              onDelete={onDeleteTask}
+              onDragEnd={onDragEnd}
+            />
+          ))}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+};
+
 export const ProjectDashboard = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -82,13 +151,48 @@ export const ProjectDashboard = () => {
   const [activeTab, setActiveTab] = useState('kanban');
   const [hasAccess, setHasAccess] = useState(false);
   const [tasks, setTasks] = useState(initialTasks);
-  const [contributions, setContributions] = useState(initialContributions);
+  const [contributions, setContributions] = useState({
+    labels: [],
+    datasets: [{
+      data: [],
+      backgroundColor: []
+    }]
+  });
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', assignee: '' });
+  const [projectUsers, setProjectUsers] = useState([]);
+  const [isMessagePanelOpen, setIsMessagePanelOpen] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [lastReadMessageTime, setLastReadMessageTime] = useState(null);
   
   const token = localStorage.getItem('token');
   const username = localStorage.getItem('username');
+
+  // Add color mapping state
+  const [userColorMap, setUserColorMap] = useState({});
+  
+  // Refs for the columns to detect drop targets
+  const columnRefs = {
+    'not-started': useRef(null),
+    'in-progress': useRef(null),
+    'completed': useRef(null)
+  };
+
+  // Column colors
+  const columnColors = {
+    'not-started': '#3498db',
+    'in-progress': '#f39c12',
+    'completed': '#2ecc71'
+  };
+
+  // Define a color palette with four distinct colors
+  const colorPalette = [
+    '#FF6B6B', // Red
+    '#9B59B6', // Purple
+    '#3498DB', // Sky Blue
+    '#008000'  // Dark Green
+  ];
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -290,80 +394,93 @@ export const ProjectDashboard = () => {
         setTasks(mockTasks);
       }
       
-      // Set up contribution data
-      if (project.contributions && Array.isArray(project.contributions) && project.contributions.length > 0) {
-        // Use contribution data from project
-        setContributions({
-          labels: project.contributions.map(contrib => contrib.username || 'Unknown'),
-          datasets: [
-            {
-              label: 'Completed Tasks',
-              data: project.contributions.map(contrib => contrib.taskCount || 0),
-              backgroundColor: project.contributions.map(contrib => 
-                contrib.color || getRandomColor(contrib.username || 'user-' + Math.random())),
-              borderColor: project.contributions.map(contrib => 
-                adjustColorBrightness(contrib.color || getRandomColor(contrib.username || 'user-' + Math.random()), -20)),
-              borderWidth: 1,
-            },
-          ],
-        });
-      } else {
-        // Generate mock contribution data
-        const users = [
-          username || 'You', 
-          project.ownerUsername || 'Project Owner'
-        ].filter(Boolean); // Filter out any undefined values
-        
-        // Create a local copy of tasks to avoid dependency on the tasks state
-        const localCompletedTasks = project.tasks && Array.isArray(project.tasks) 
-          ? project.tasks.filter(task => task && task.status === 'completed')
-          : [];
-        
-        const completedTasksCount = {
-          [username || 'You']: localCompletedTasks.filter(task => 
-            task && task.assignee === (username || 'You')).length,
-          [project.ownerUsername || 'Project Owner']: localCompletedTasks.filter(task => 
-            task && task.assignee === (project.ownerUsername || 'Project Owner')).length
-        };
-        
-        // Generate unique colors for each user
-        const userColors = {};
-        users.forEach(user => {
-          userColors[user] = getRandomColor(user);
-        });
-        
-        setContributions({
-          labels: users,
-          datasets: [
-            {
-              label: 'Completed Tasks',
-              data: users.map(user => completedTasksCount[user] || 0),
-              backgroundColor: users.map(user => userColors[user]),
-              borderColor: users.map(user => adjustColorBrightness(userColors[user], -20)),
-              borderWidth: 1,
-            },
-          ],
-        });
+      // We'll update contributions when tasks change
+    }
+  }, [project, username]);
+
+  // Add new useEffect to update the contributions chart whenever tasks change
+  useEffect(() => {
+    if (project && projectUsers.length > 0) {
+      updateContributionsChart();
+    }
+  }, [tasks, projectUsers, project]);
+
+  // Function to update the contributions chart based on completed tasks
+  const updateContributionsChart = () => {
+    if (!project || !projectUsers.length) return;
+
+    // Get all completed tasks
+    const completedTasks = tasks["completed"] || [];
+    
+    // Create a map to count completed tasks by user
+    const taskCountByUser = {};
+    
+    // Initialize counts for all project users
+    projectUsers.forEach(user => {
+      taskCountByUser[user.username] = 0;
+    });
+    
+    // Count completed tasks for each user
+    completedTasks.forEach(task => {
+      if (task && task.assignee) {
+        taskCountByUser[task.assignee] = (taskCountByUser[task.assignee] || 0) + 1;
       }
-    }
-  }, [project, username]); // Removed tasks from dependencies to avoid infinite loop
+    });
+    
+    // Get all users who have completed tasks or are in the project
+    const allUsernames = Object.keys(taskCountByUser).filter(username => 
+      username !== project.ownerUsername
+    );
 
-  // Generate a consistent color based on username string
-  const getRandomColor = (str) => {
-    // Handle undefined or null input
-    if (!str) {
-      return `hsl(${Math.floor(Math.random() * 360)}, 70%, 65%)`;
+    // Assign colors from the palette based on the user index
+    const userColors = {};
+    allUsernames.forEach((username, index) => {
+      userColors[username] = colorPalette[index % colorPalette.length]; // Cycle through the palette
+    });
+    
+    // Update the contributions state
+    setContributions({
+      labels: allUsernames,
+      datasets: [
+        {
+          label: 'Completed Tasks',
+          data: allUsernames.map(username => taskCountByUser[username] || 0),
+          backgroundColor: allUsernames.map(username => userColors[username]),
+          borderColor: allUsernames.map(username => adjustColorBrightness(userColors[username], -20)),
+          borderWidth: 1,
+        },
+      ],
+    });
+  };
+
+  // Modify the getRandomColor function to ensure unique colors for enrolled users and the owner
+  const getRandomColor = (username) => {
+    // If user already has a color, return it
+    if (userColorMap[username]) {
+      return userColorMap[username];
     }
 
-    // Generate a hash from the string
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    // Find first available color from palette
+    const usedColors = new Set(Object.values(userColorMap));
+    let availableColor = colorPalette.find(color => !usedColors.has(color));
+
+    // If no available color from the palette, generate a distinct one
+    if (!availableColor) {
+      // Generate a color based on username hash to ensure consistency
+      const hashCode = username.split('').reduce(
+        (hash, char) => char.charCodeAt(0) + ((hash << 5) - hash), 0
+      );
+      const hue = Math.abs(hashCode % 360);
+      availableColor = `hsl(${hue}, 70%, 65%)`;
     }
     
-    // Convert hash to RGB
-    const hue = ((hash % 360) + 360) % 360; // Ensure positive value
-    return `hsl(${hue}, 70%, 65%)`;
+    // Update color mapping
+    setUserColorMap(prev => ({
+      ...prev,
+      [username]: availableColor
+    }));
+
+    return availableColor;
   };
 
   // Adjust color brightness (for borders)
@@ -407,112 +524,97 @@ export const ProjectDashboard = () => {
     navigate('/main/myprojects');
   };
 
-  // Handle drag and drop
-  const onDragEnd = async (result) => {
-    const { source, destination } = result;
+  // Handle task drag end with Framer Motion
+  const handleTaskDragEnd = (event, info, task, sourceColumnId) => {
+    // Get the current pointer position
+    const { point } = info;
     
-    // Dropped outside a droppable area
-    if (!destination) return;
+    // Find all column elements
+    const columns = document.querySelectorAll('.task-list');
+    let targetColumn = null;
     
-    // No change in position
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) return;
-    
-    // Moving within the same column
-    if (source.droppableId === destination.droppableId) {
-      const column = Array.from(tasks[source.droppableId]);
-      const [removed] = column.splice(source.index, 1);
-      column.splice(destination.index, 0, removed);
-      
-      setTasks({
-        ...tasks,
-        [source.droppableId]: column
-      });
-      return;
-    }
-    
-    // Moving from one column to another
-    const sourceColumn = Array.from(tasks[source.droppableId]);
-    const destColumn = Array.from(tasks[destination.droppableId]);
-    const [removed] = sourceColumn.splice(source.index, 1);
-    destColumn.splice(destination.index, 0, removed);
-    
-    // Update local state first for better UX
-    setTasks({
-      ...tasks,
-      [source.droppableId]: sourceColumn,
-      [destination.droppableId]: destColumn
+    // Find which column the pointer is over
+    columns.forEach(column => {
+      const rect = column.getBoundingClientRect();
+      if (
+        point.x >= rect.left &&
+        point.x <= rect.right &&
+        point.y >= rect.top &&
+        point.y <= rect.bottom
+      ) {
+        targetColumn = column;
+      }
     });
     
-    // Update task status on server
+    // If not dropped on a column or dropped on the same column, do nothing
+    if (!targetColumn) return;
+    
+    const targetColumnId = targetColumn.getAttribute('data-status');
+    if (targetColumnId === sourceColumnId) return;
+    
+    console.log(`Moving task from ${sourceColumnId} to ${targetColumnId}`);
+    
+    // Update tasks state
+    const newTasks = { ...tasks };
+    
+    // Remove from source column
+    newTasks[sourceColumnId] = newTasks[sourceColumnId].filter(t => t.id !== task.id);
+    
+    // Add to target column with updated status
+    const updatedTask = { ...task, status: targetColumnId };
+    newTasks[targetColumnId] = [...newTasks[targetColumnId], updatedTask];
+    
+    // Update UI state first for responsiveness
+    setTasks(newTasks);
+    
+    // Update on server
+    updateTaskOnServer(task.id, { status: targetColumnId })
+      .catch(error => {
+        console.error('Error updating task:', error);
+        // Revert state on error
+        setTasks(tasks);
+      });
+  };
+
+  // Fetch project users
+  const fetchProjectUsers = useCallback(async () => {
+    if (!token || !id) return;
+    
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/tasks/${removed.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/users`, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': token
-        },
-        body: JSON.stringify({
-          status: destination.droppableId
-        })
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update task status');
+        throw new Error(`Failed to fetch project users: ${response.status} ${response.statusText}`);
       }
       
-      // If moving to completed column, update contribution data
-      if (destination.droppableId === 'completed' && source.droppableId !== 'completed') {
-        const assignee = removed.assignee;
-        updateContributionData(assignee);
-      } else if (source.droppableId === 'completed' && destination.droppableId !== 'completed') {
-        const assignee = removed.assignee;
-        decreaseContributionData(assignee);
+      const users = await response.json();
+      console.log("Project users fetched:", users);
+      setProjectUsers(users);
+      
+      // If we're editing a task, make sure the assignee is in the users list
+      if (editingTask && !users.some(user => user.username === editingTask.assignee)) {
+        setEditingTask({
+          ...editingTask,
+          assignee: username || 'You'
+        });
       }
       
-      console.log('Task status updated successfully');
+      // After fetching users, make sure to update the contributions chart
+      updateContributionsChart();
     } catch (error) {
-      console.error('Error updating task status:', error);
-      // You might want to show an error message to the user here
-      // And possibly revert the local state change
+      console.error('Error fetching project users:', error);
     }
-  };
+  }, [id, token, editingTask, username]);
 
-  // Update contribution data when a task is moved to completed
-  const updateContributionData = (assignee) => {
-    const newContributions = { ...contributions };
-    const index = newContributions.labels.indexOf(assignee);
-    
-    if (index >= 0) {
-      newContributions.datasets[0].data[index]++;
-    } else {
-      const userColor = getRandomColor(assignee);
-      newContributions.labels.push(assignee);
-      newContributions.datasets[0].data.push(1);
-      newContributions.datasets[0].backgroundColor.push(userColor);
-      newContributions.datasets[0].borderColor.push(adjustColorBrightness(userColor, -20));
+  useEffect(() => {
+    if (hasAccess) {
+      fetchProjectUsers();
     }
-    
-    setContributions(newContributions);
-    
-    // This would be where we'd update the project data in a real application
-    // updateProjectContributions(assignee);
-  };
-
-  // Decrease contribution data when a task is moved from completed
-  const decreaseContributionData = (assignee) => {
-    const newContributions = { ...contributions };
-    const index = newContributions.labels.indexOf(assignee);
-    
-    if (index >= 0) {
-      newContributions.datasets[0].data[index] = Math.max(0, newContributions.datasets[0].data[index] - 1);
-    }
-    
-    setContributions(newContributions);
-  };
+  }, [hasAccess, fetchProjectUsers]);
 
   // Handle creating a new task
   const handleCreateTask = async () => {
@@ -616,11 +718,9 @@ export const ProjectDashboard = () => {
       for (const [col, taskList] of Object.entries(tasks)) {
         const index = taskList.findIndex(t => t.id === taskId);
         if (index >= 0) {
-          // If deleting from completed column, update contribution data
-          if (col === 'completed') {
-            const task = taskList[index];
-            decreaseContributionData(task.assignee);
-          }
+          // If deleting from completed column, the pie chart will auto-update 
+          // from the useEffect that watches tasks
+          const task = taskList[index];
           
           updatedTasks[col] = taskList.filter(t => t.id !== taskId);
           break;
@@ -642,11 +742,8 @@ export const ProjectDashboard = () => {
         for (const [col, taskList] of Object.entries(tasks)) {
           const index = taskList.findIndex(t => t.id === taskId);
           if (index >= 0) {
-            // If deleting from completed column, update contribution data
-            if (col === 'completed') {
-              const task = taskList[index];
-              decreaseContributionData(task.assignee);
-            }
+            // If deleting from completed column, the pie chart will auto-update
+            // from the useEffect that watches tasks
             
             updatedTasks[col] = taskList.filter(t => t.id !== taskId);
             break;
@@ -750,6 +847,58 @@ export const ProjectDashboard = () => {
     }
   };
 
+  // Toggle message panel
+  const toggleMessagePanel = () => {
+    setIsMessagePanelOpen(!isMessagePanelOpen);
+    
+    // Reset unread count when opening the message panel
+    if (!isMessagePanelOpen) {
+      setUnreadMessageCount(0);
+      setLastReadMessageTime(new Date());
+    }
+  };
+
+  // Check for unread messages when project is loaded
+  useEffect(() => {
+    if (project && project.messages && project.messages.length > 0) {
+      // If we haven't read any messages yet, all messages are unread
+      if (!lastReadMessageTime) {
+        setUnreadMessageCount(project.messages.length);
+        return;
+      }
+      
+      // Count messages newer than the last read time
+      const lastReadTime = new Date(lastReadMessageTime);
+      const unreadCount = project.messages.filter(
+        msg => new Date(msg.timestamp) > lastReadTime
+      ).length;
+      
+      setUnreadMessageCount(unreadCount);
+    }
+  }, [project, lastReadMessageTime]);
+
+  // Handler for new message notifications
+  const handleNewMessage = (message) => {
+    // Increment unread count if message panel is closed
+    if (!isMessagePanelOpen) {
+      setUnreadMessageCount(prev => prev + 1);
+    }
+  };
+
+  // Pass the handler to the MessagePanel component
+  const messagePanelProps = {
+    isOpen: isMessagePanelOpen,
+    onClose: toggleMessagePanel,
+    projectId: id,
+    currentUsername: username,
+    projectTitle: project?.title,
+    onNewMessage: handleNewMessage,
+    themeColors: {
+      primary: 'rgb(41, 44, 88)',
+      secondary: '#3498db'
+    }
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -795,8 +944,11 @@ export const ProjectDashboard = () => {
         </button>
         <h1>{project?.title || 'Project Dashboard'}</h1>
         <div className="dashboard-actions">
-          <button className="messages-button">
+          <button className="messages-button" onClick={toggleMessagePanel}>
             <FontAwesomeIcon icon={faComment} /> Messages
+            {unreadMessageCount > 0 && (
+              <span className="message-notification">{unreadMessageCount}</span>
+            )}
           </button>
           <button className="profile-button">
             <FontAwesomeIcon icon={faUser} /> Profile
@@ -850,145 +1002,87 @@ export const ProjectDashboard = () => {
                 </button>
               </div>
 
-              {/* Kanban Board */}
-              <DragDropContext onDragEnd={onDragEnd}>
-                <div className="kanban-board">
-                  <div className="kanban-column not-started-column">
-                    <div className="kanban-column-header">
-                      <h4>Not Yet Started</h4>
-                    </div>
-                    <StrictModeDroppable droppableId="not-started">
-                      {(provided) => (
-                        <div
-                          className="task-list"
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                        >
-                          {tasks["not-started"] && tasks["not-started"].map((task, index) => (
-                            <Draggable key={task.id} draggableId={task.id} index={index}>
-                              {(provided) => (
-                                <div
-                                  className="task-card"
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                >
-                                  <div className="task-content">
-                                    <h5>{task.title}</h5>
-                                    <p>{task.description}</p>
-                                    <span className="task-assignee">Assigned to: {task.assignee}</span>
-                                  </div>
-                                  <div className="task-actions">
-                                    <button onClick={() => handleEditTask(task)}>
-                                      <FontAwesomeIcon icon={faEdit} />
-                                    </button>
-                                    <button onClick={() => handleDeleteTask(task.id)}>
-                                      <FontAwesomeIcon icon={faTrash} />
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </StrictModeDroppable>
-                  </div>
-
-                  <div className="kanban-column in-progress-column">
-                    <div className="kanban-column-header">
-                      <h4>In Progress</h4>
-                    </div>
-                    <StrictModeDroppable droppableId="in-progress">
-                      {(provided) => (
-                        <div
-                          className="task-list"
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                        >
-                          {tasks["in-progress"] && tasks["in-progress"].map((task, index) => (
-                            <Draggable key={task.id} draggableId={task.id} index={index}>
-                              {(provided) => (
-                                <div
-                                  className="task-card"
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                >
-                                  <div className="task-content">
-                                    <h5>{task.title}</h5>
-                                    <p>{task.description}</p>
-                                    <span className="task-assignee">Assigned to: {task.assignee}</span>
-                                  </div>
-                                  <div className="task-actions">
-                                    <button onClick={() => handleEditTask(task)}>
-                                      <FontAwesomeIcon icon={faEdit} />
-                                    </button>
-                                    <button onClick={() => handleDeleteTask(task.id)}>
-                                      <FontAwesomeIcon icon={faTrash} />
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </StrictModeDroppable>
-                  </div>
-
-                  <div className="kanban-column completed-column">
-                    <div className="kanban-column-header">
-                      <h4>Completed</h4>
-                    </div>
-                    <StrictModeDroppable droppableId="completed">
-                      {(provided) => (
-                        <div
-                          className="task-list"
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                        >
-                          {tasks["completed"] && tasks["completed"].map((task, index) => (
-                            <Draggable key={task.id} draggableId={task.id} index={index}>
-                              {(provided) => (
-                                <div
-                                  className="task-card"
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                >
-                                  <div className="task-content">
-                                    <h5>{task.title}</h5>
-                                    <p>{task.description}</p>
-                                    <span className="task-assignee">Assigned to: {task.assignee}</span>
-                                  </div>
-                                  <div className="task-actions">
-                                    <button onClick={() => handleEditTask(task)}>
-                                      <FontAwesomeIcon icon={faEdit} />
-                                    </button>
-                                    <button onClick={() => handleDeleteTask(task.id)}>
-                                      <FontAwesomeIcon icon={faTrash} />
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </StrictModeDroppable>
-                  </div>
-                </div>
-              </DragDropContext>
+              {/* Kanban Board with Framer Motion */}
+              <div className="kanban-board">
+                <KanbanColumn
+                  title="Not Yet Started"
+                  status="not-started"
+                  tasks={tasks["not-started"]}
+                  onEditTask={handleEditTask}
+                  onDeleteTask={handleDeleteTask}
+                  onDragEnd={handleTaskDragEnd}
+                  color={columnColors['not-started']}
+                />
+                <KanbanColumn
+                  title="In Progress"
+                  status="in-progress"
+                  tasks={tasks["in-progress"]}
+                  onEditTask={handleEditTask}
+                  onDeleteTask={handleDeleteTask}
+                  onDragEnd={handleTaskDragEnd}
+                  color={columnColors['in-progress']}
+                />
+                <KanbanColumn
+                  title="Completed"
+                  status="completed"
+                  tasks={tasks["completed"]}
+                  onEditTask={handleEditTask}
+                  onDeleteTask={handleDeleteTask}
+                  onDragEnd={handleTaskDragEnd}
+                  color={columnColors['completed']}
+                />
+              </div>
 
               {/* Contribution Section */}
               <div className="contribution-section">
                 <h3>Contribution</h3>
                 <div className="contribution-chart">
-                  <Pie data={contributions} options={{ responsive: true, maintainAspectRatio: true }} />
+                  <Pie 
+                    data={contributions} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: true,
+                      plugins: {
+                        title: {
+                          display: true,
+                          text: 'Team Task Contributions',
+                          font: {
+                            size: 16,
+                            weight: 'bold'
+                          },
+                          padding: {
+                            top: 10,
+                            bottom: 20
+                          }
+                        },
+                        legend: {
+                          position: 'bottom',
+                          labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                              size: 12
+                            }
+                          }
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: function(context) {
+                              const label = context.label || '';
+                              const value = context.raw || 0;
+                              const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                              const percentage = Math.round((value / total) * 100);
+                              return `${label}: ${value} tasks (${percentage}%)`;
+                            }
+                          }
+                        }
+                      },
+                      animation: {
+                        animateScale: true,
+                        animateRotate: true
+                      }
+                    }} 
+                  />
                 </div>
               </div>
             </div>
@@ -1071,12 +1165,18 @@ export const ProjectDashboard = () => {
             </div>
             <div className="form-group">
               <label>Assignee</label>
-              <input 
-                type="text" 
+              <select 
                 value={newTask.assignee} 
                 onChange={(e) => setNewTask({...newTask, assignee: e.target.value})}
-                placeholder="Enter assignee username"
-              />
+                className="assignee-dropdown"
+              >
+                <option value="">Select assignee</option>
+                {projectUsers.map(user => (
+                  <option key={user.userId} value={user.username}>
+                    {user.username}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="modal-actions">
               <button className="cancel-button" onClick={() => {
@@ -1096,6 +1196,10 @@ export const ProjectDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {project && (
+        <MessagePanel {...messagePanelProps} />
       )}
     </div>
   );

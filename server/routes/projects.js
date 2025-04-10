@@ -783,6 +783,10 @@ router.post('/:id/messages', authenticate, async (req, res) => {
 
         await project.save();
 
+        // Socket.io is handled in server.js so we don't need to emit here
+        // We just save to the database and the socket event from the client
+        // will broadcast to everyone else
+        
         res.status(201).json(newMessage);
     } catch (error) {
         res.status(500).json({ message: 'Error sending message', error });
@@ -926,6 +930,60 @@ router.get('/:id/enrolledUsers', authenticate, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching enrolled users', error });
+    }
+});
+
+// Get all users in a project (owner and enrolled users)
+router.get('/:id/users', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user has access to this project
+        const isOwner = project.userId.toString() === userId;
+        const isEnrolled = project.enrolledUsers.some(
+            enrolledUserId => enrolledUserId.toString() === userId
+        );
+
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ message: 'You do not have permission to view users in this project' });
+        }
+
+        // Get owner details
+        const owner = await User.findById(project.userId);
+        const ownerDetails = owner ? {
+            userId: owner._id,
+            username: owner.username
+        } : null;
+
+        // Get enrolled users details
+        const enrolledUsersDetails = [];
+        for (const enrolledUserId of project.enrolledUsers) {
+            const user = await User.findById(enrolledUserId);
+            if (user) {
+                enrolledUsersDetails.push({
+                    userId: user._id,
+                    username: user.username
+                });
+            }
+        }
+
+        // Combine owner and enrolled users
+        const allUsers = [];
+        if (ownerDetails) {
+            allUsers.push(ownerDetails);
+        }
+        allUsers.push(...enrolledUsersDetails);
+
+        res.status(200).json(allUsers);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching project users', error });
     }
 });
 

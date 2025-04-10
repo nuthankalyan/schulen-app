@@ -1,0 +1,239 @@
+.message-panel-container {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 400px;
+  height: 100vh;
+  background-color: white;
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.message-panel-container.active {
+  right: 0;
+}
+
+.message-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: rgb(41, 44, 88);
+  color: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.message-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.message-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 15px;
+  background-color: #f5f7fa;
+}
+
+.no-messages {
+  text-align: center;
+  font-style: italic;
+  color: rgb(41, 44, 88);
+  padding: 20px;
+  background-color: rgba(41, 44, 88, 0.05);
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.message-item {
+  max-width: 80%;
+  padding: 12px 15px;
+  border-radius: 12px;
+  position: relative;
+  word-wrap: break-word;
+  line-height: 1.4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.message-sender {
+  font-size: 12px;
+  margin-bottom: 5px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.message-time {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 5px;
+  text-align: right;
+}
+
+.message-content {
+  font-size: 14px;
+}
+
+/* Styles for sent messages (right side) */
+.message-sent {
+  align-self: flex-end;
+  background-color: #3D4068;
+  border-bottom-right-radius: 4px;
+  color: white;
+}
+
+.message-sent .message-sender {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-sent::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-left-color: #3D4068;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.message-sent .message-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Styles for received messages (left side) */
+.message-received {
+  align-self: flex-start;
+  background-color: white;
+  border-bottom-left-radius: 4px;
+}
+
+.message-received .message-sender {
+  text-align: left;
+  color: #3498db;
+}
+
+.message-received::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-right-color: white;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.message-form {
+  display: flex;
+  padding: 15px;
+  background-color: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.message-input {
+  flex-grow: 1;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 10px 15px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.message-input:focus {
+  border-color: rgb(41, 44, 88);
+}
+
+.send-button {
+  background-color: rgb(41, 44, 88);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.send-button:hover {
+  background-color: rgb(61, 64, 128);
+  transform: scale(1.05);
+}
+
+.send-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Overlay when message panel is open */
+.message-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 1099;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.message-panel-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.typing-indicator {
+  font-size: 12px;
+  font-style: italic;
+  color: rgb(41, 44, 88);
+  background-color: rgba(41, 44, 88, 0.08);
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  align-self: flex-start;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 
