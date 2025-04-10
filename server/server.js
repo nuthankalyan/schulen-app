@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const http = require('http');
+const socketIo = require('socket.io');
 const projectsRouter = require('./routes/projects');
 const User = require('./models/User');
 
@@ -11,6 +13,15 @@ const User = require('./models/User');
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: {
+        origin: ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech/'],
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -43,6 +54,83 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .then(() => console.log('Connected to MongoDB Atlas'))
 .catch((err) => console.error('MongoDB connection error:', err));
+
+// Socket.io connection handling
+const projectRooms = {};
+
+io.on('connection', (socket) => {
+    console.log('New client connected');
+    
+    // Join a project room
+    socket.on('joinProject', (projectId) => {
+        socket.join(projectId);
+        console.log(`User joined project room: ${projectId}`);
+        
+        // Initialize room if not exists
+        if (!projectRooms[projectId]) {
+            projectRooms[projectId] = {
+                users: new Set()
+            };
+        }
+    });
+    
+    // Handle chat messages
+    socket.on('sendMessage', async (data) => {
+        const { projectId, message, username } = data;
+        
+        try {
+            // Save message to database
+            if (projectId && message && username) {
+                // Find the project
+                const Project = mongoose.model('Project');
+                const project = await Project.findById(projectId);
+                
+                if (project) {
+                    // Add the message to the project
+                    project.messages = project.messages || [];
+                    const newMessage = {
+                        sender: username,
+                        text: message,
+                        timestamp: new Date()
+                    };
+                    project.messages.push(newMessage);
+                    await project.save();
+                }
+            }
+            
+            // Broadcast message to all users in the project room
+            io.to(projectId).emit('newMessage', {
+                sender: username,
+                text: message,
+                timestamp: new Date()
+            });
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    });
+    
+    // Handle disconnections
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+        // Clean up any user data if needed
+    });
+    
+    // Leave project room
+    socket.on('leaveProject', (projectId) => {
+        socket.leave(projectId);
+        console.log(`User left project room: ${projectId}`);
+    });
+
+    // Handle typing indicators
+    socket.on('userTyping', (data) => {
+        const { projectId, username } = data;
+        
+        if (!projectId || !username) return;
+        
+        // Broadcast to all users in the room except the sender
+        socket.to(projectId).emit('userTyping', { username });
+    });
+});
 
 // Signup route
 app.post('/signup', async (req, res) => {
@@ -83,6 +171,7 @@ app.post('/login', async (req, res) => {
 // Use projects router
 app.use('/browseprojects', projectsRouter);
 
-app.listen(PORT, () => {
+// Start the server with socket.io
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
