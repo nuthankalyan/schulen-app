@@ -8,10 +8,17 @@ import {
     faNewspaper,
     faSignOutAlt,
     faPen,
-    faTimes
+    faTimes,
+    faArrowLeft,
+    faTimes as faTimesCircle
 } from '../fontawesome';
 import { Header } from './Header';
+import config from '../config';
 import './Blogs.css';
+
+// API URL configuration from config
+const API_URL = config.API_BASE_URL;
+const BLOGS_ENDPOINT = `${API_URL}/blogs`;
 
 export const Blogs = () => {
     const navigate = useNavigate();
@@ -20,11 +27,47 @@ export const Blogs = () => {
     const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [serverStatus, setServerStatus] = useState('Checking...');
     const [formData, setFormData] = useState({
         title: '',
         caption: '',
         content: ''
     });
+
+    // Check server connectivity
+    useEffect(() => {
+        const checkServerConnectivity = async () => {
+            try {
+                setServerStatus('Checking connection...');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch(API_URL, {
+                    signal: controller.signal,
+                    method: 'HEAD'
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    console.log('Successfully connected to the server');
+                    setServerStatus('Connected');
+                } else {
+                    console.error('Server responded with status:', response.status);
+                    setServerStatus(`Error: Server responded with status ${response.status}`);
+                }
+            } catch (err) {
+                console.error('Server connectivity check failed:', err);
+                if (err.name === 'AbortError') {
+                    setServerStatus('Error: Server connection timed out');
+                } else {
+                    setServerStatus(`Error: ${err.message}`);
+                }
+            }
+        };
+        
+        checkServerConnectivity();
+    }, []);
 
     // Fetch blogs from API
     useEffect(() => {
@@ -38,22 +81,66 @@ export const Blogs = () => {
                     return;
                 }
                 
-                const response = await fetch('/blogs', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                console.log('Fetching blogs directly from:', BLOGS_ENDPOINT);
+                
+                // First attempt - try with fetch's json() method
+                try {
+                    const response = await fetch(BLOGS_ENDPOINT, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        mode: 'cors' // Explicitly set CORS mode
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
                     }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
+                    
+                    const data = await response.json();
+                    console.log('Blogs fetched:', data);
+                    setBlogs(data);
+                    setLoading(false);
+                } catch (jsonError) {
+                    // If json() method fails, try the manual approach as fallback
+                    console.error('Error with json() method, trying manual parsing:', jsonError);
+                    
+                    const manualResponse = await fetch(BLOGS_ENDPOINT, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    // Get text and try to parse it manually
+                    const text = await manualResponse.text();
+                    
+                    // Log the first part of the response to see what we're getting
+                    console.log('Raw response text:', text.substring(0, 200));
+                    
+                    // Check if it looks like HTML
+                    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                        console.error('Received HTML instead of JSON');
+                        throw new Error('The server returned an HTML page instead of JSON data. Please check your backend API.');
+                    }
+                    
+                    try {
+                        const manualData = JSON.parse(text);
+                        console.log('Blogs fetched (manual parsing):', manualData);
+                        setBlogs(manualData);
+                        setLoading(false);
+                    } catch (parseError) {
+                        console.error('Manual JSON parsing failed:', parseError);
+                        throw new Error('Failed to parse server response as JSON');
+                    }
                 }
-                
-                const data = await response.json();
-                setBlogs(data);
-                setLoading(false);
             } catch (err) {
                 console.error('Error fetching blogs:', err);
-                setError(`Failed to load blogs. Please check your connection.`);
+                setError(`Failed to load blogs: ${err.message}`);
                 setLoading(false);
             }
         };
@@ -112,34 +199,90 @@ export const Blogs = () => {
                 return;
             }
             
-            const response = await fetch('/blogs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
+            console.log('Creating blog directly at:', BLOGS_ENDPOINT);
+            console.log('Form data:', formData);
             
-            if (!response.ok) {
-                throw new Error(`Error: ${response.status}`);
+            // First attempt - try with fetch's json() method
+            try {
+                const response = await fetch(BLOGS_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(formData),
+                    credentials: 'include',
+                    mode: 'cors'
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                
+                const newBlog = await response.json();
+                console.log('New blog created:', newBlog);
+                
+                // Add the new blog to the blogs state
+                setBlogs([newBlog, ...blogs]);
+                
+                // Reset form and close modal
+                setFormData({
+                    title: '',
+                    caption: '',
+                    content: ''
+                });
+                setShowModal(false);
+            } catch (jsonError) {
+                // If json() method fails, try the manual approach as fallback
+                console.error('Error with json() method, trying manual parsing:', jsonError);
+                
+                const manualResponse = await fetch(BLOGS_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                // Get text and try to parse it manually
+                const text = await manualResponse.text();
+                
+                // Log the first part of the response to see what we're getting
+                console.log('Raw response text:', text.substring(0, 200));
+                
+                // Check if it looks like HTML
+                if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                    console.error('Received HTML instead of JSON');
+                    throw new Error('The server returned an HTML page instead of JSON data. Please check your backend API.');
+                }
+                
+                try {
+                    const newBlog = JSON.parse(text);
+                    console.log('New blog created (manual parsing):', newBlog);
+                    
+                    // Add the new blog to the blogs state
+                    setBlogs([newBlog, ...blogs]);
+                    
+                    // Reset form and close modal
+                    setFormData({
+                        title: '',
+                        caption: '',
+                        content: ''
+                    });
+                    setShowModal(false);
+                } catch (parseError) {
+                    console.error('Manual JSON parsing failed:', parseError);
+                    throw new Error('Failed to parse server response as JSON');
+                }
             }
-            
-            const newBlog = await response.json();
-            
-            // Add the new blog to the blogs state
-            setBlogs([newBlog, ...blogs]);
-            
-            // Reset form and close modal
-            setFormData({
-                title: '',
-                caption: '',
-                content: ''
-            });
-            setShowModal(false);
         } catch (err) {
             console.error('Error creating blog:', err);
-            setError(`Failed to create blog. Please try again.`);
+            setError(`Failed to create blog: ${err.message}`);
         }
     };
 
@@ -284,16 +427,22 @@ export const Blogs = () => {
             {/* Confirmation Modal */}
             {showConfirmation && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
+                    <div className="modal-content confirmation-content">
                         <div className="confirmation-modal">
                             <h2>Discard Changes?</h2>
                             <p>You have unsaved changes. Are you sure you want to discard them?</p>
                             <div className="confirmation-buttons">
-                                <button className="no-btn" onClick={handleCloseConfirmation}>
-                                    No, Keep Editing
+                                <button 
+                                    className="no-btn" 
+                                    onClick={handleCloseConfirmation}
+                                >
+                                    <FontAwesomeIcon icon={faArrowLeft} /> Keep Editing
                                 </button>
-                                <button className="yes-btn" onClick={handleConfirmCancel}>
-                                    Yes, Discard
+                                <button 
+                                    className="yes-btn" 
+                                    onClick={handleConfirmCancel}
+                                >
+                                    Discard <FontAwesomeIcon icon={faTimesCircle} />
                                 </button>
                             </div>
                         </div>

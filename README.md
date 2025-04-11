@@ -145,3 +145,44 @@ If you encounter issues with dependencies during deployment, try the following:
    ```
 
 3. Ensure the `vercel.json` file is properly configured with the correct build and install commands.
+
+# Blog API Configuration
+
+When deploying the application, follow these steps to ensure the blogs feature works correctly:
+
+## Environment Variables
+
+Create a `.env` file in the root of your project with the following settings:
+
+```
+# API URLs
+REACT_APP_API_URL=
+REACT_APP_DIRECT_API_URL=https://your-backend-server.com
+
+# Other environment variables
+NODE_ENV=production
+GENERATE_SOURCEMAP=false
+```
+
+Replace `https://your-backend-server.com` with the actual URL of your deployed backend server.
+
+## Deployment Troubleshooting
+
+If you're getting "Unexpected token '<', "<!doctype "... is not valid JSON" errors:
+
+1. Check that your backend server is running and accessible
+2. Verify the REACT_APP_DIRECT_API_URL is correct in your .env file
+3. Make sure your backend server is returning valid JSON responses
+4. Check the browser console for detailed error logs from the improved debugging code
+
+## API Endpoints
+
+The blogs feature uses the following endpoints:
+
+- GET `/blogs` - Fetch all blogs
+- POST `/blogs` - Create a new blog
+- GET `/blogs/:id` - Get a specific blog
+- PUT `/blogs/:id` - Update a blog
+- DELETE `/blogs/:id` - Delete a blog
+
+Make sure these endpoints are implemented on your backend server.

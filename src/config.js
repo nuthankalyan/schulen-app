@@ -1,7 +1,5 @@
-// API configuration
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://schulen-backend.onrender.com'
-    : 'http://localhost:5000';
+// API configuration - prioritize production backend for deployment
+const API_BASE_URL = 'https://schulen-backend.onrender.com';
 
 export default {
     API_BASE_URL
