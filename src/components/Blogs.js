@@ -351,14 +351,18 @@ export const Blogs = () => {
                     ) : (
                         <div className="blogs-grid">
                             {blogs.map((blog) => (
-                                <div key={blog._id} className="blog-card">
+                                <Link 
+                                    to={`/main/blogs/${blog._id}`} 
+                                    key={blog._id}
+                                    className="blog-card"
+                                >
                                     <h3>{blog.title}</h3>
                                     <p className="caption">{blog.caption}</p>
                                     <div className="meta">
                                         <span>{blog.author.username}</span>
                                         <span>{formatDate(blog.createdAt)}</span>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
@@ -368,16 +372,15 @@ export const Blogs = () => {
             {/* Write Blog Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
+                    <div className="blog-editor-modal">
                         <div className="modal-header">
-                            <h2>Write New Blog</h2>
+                            <h2>Create a New Story</h2>
                             <button className="close-button" onClick={handleCloseModal}>
                                 <FontAwesomeIcon icon={faTimes} />
                             </button>
                         </div>
                         <form className="blog-form" onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label htmlFor="title">Title</label>
+                            <div className="blog-title-input">
                                 <input
                                     type="text"
                                     id="title"
@@ -385,11 +388,11 @@ export const Blogs = () => {
                                     value={formData.title}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="Enter a compelling title"
+                                    placeholder="Title"
+                                    className="title-input"
                                 />
                             </div>
-                            <div className="form-group">
-                                <label htmlFor="caption">Caption</label>
+                            <div className="blog-caption-input">
                                 <input
                                     type="text"
                                     id="caption"
@@ -397,27 +400,33 @@ export const Blogs = () => {
                                     value={formData.caption}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="Write a brief description"
+                                    placeholder="Add a subtitle that describes your story..."
+                                    className="caption-input"
                                 />
                             </div>
-                            <div className="form-group">
-                                <label htmlFor="content">Content</label>
+                            <div className="content-editor">
                                 <textarea
                                     id="content"
                                     name="content"
                                     value={formData.content}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="Write your blog content here..."
+                                    placeholder="Tell your story..."
+                                    className="content-textarea"
                                 />
                             </div>
-                            <div className="form-buttons">
-                                <button type="button" className="cancel-btn" onClick={handleCloseModal}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="publish-btn">
-                                    Publish
-                                </button>
+                            <div className="editor-toolbar">
+                                <div className="editor-info">
+                                    <span>Write something inspiring or informative</span>
+                                </div>
+                                <div className="publish-actions">
+                                    <button type="button" className="cancel-btn" onClick={handleCloseModal}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="publish-btn">
+                                        Publish
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
