@@ -1,0 +1,28 @@
+.community-content {
+    padding: 20px;
+    width: 100%;
+}
+
+.empty-state {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 800px;
+    margin: 30px auto;
+}
+
+.empty-state h2 {
+    color: rgb(41, 44, 88);
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.empty-state p {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+} 

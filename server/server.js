@@ -7,6 +7,7 @@ const dotenv = require('dotenv');
 const http = require('http');
 const socketIo = require('socket.io');
 const projectsRouter = require('./routes/projects');
+const blogsRouter = require('./routes/blogs');
 const User = require('./models/User');
 
 // Load environment variables
@@ -27,22 +28,18 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Use CORS middleware
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: '*', // Allow all origins for testing
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
 }));
 
 app.use(express.json());
+
+// Basic health check route
+app.get('/', (req, res) => {
+    res.status(200).json({ message: 'Server is running' });
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -167,6 +164,9 @@ app.post('/login', async (req, res) => {
 
 // Use projects router
 app.use('/browseprojects', projectsRouter);
+
+// Use blogs router
+app.use('/blogs', blogsRouter);
 
 // Serve manifest.json with proper CORS headers
 app.get('/manifest.json', (req, res) => {

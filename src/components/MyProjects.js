@@ -7,7 +7,8 @@ import { FontAwesomeIcon } from '../fontawesome';
 import { 
   faProjectDiagram, 
   faFolderOpen, 
-  faEnvelope, 
+  faUsers, 
+  faNewspaper,
   faSignOutAlt,
   faPlus
 } from '@fortawesome/free-solid-svg-icons';
@@ -506,9 +507,15 @@ export const MyProjects = () => {
                             </Link>
                         </li>
                         <li>
-                            <Link to="/messages">
-                                <FontAwesomeIcon icon={faEnvelope} className="nav-icon" />
-                                <span>Messages</span>
+                            <Link to="/main/community">
+                                <FontAwesomeIcon icon={faUsers} className="nav-icon" />
+                                <span>Community</span>
+                            </Link>
+                        </li>
+                        <li>
+                            <Link to="/main/blogs">
+                                <FontAwesomeIcon icon={faNewspaper} className="nav-icon" />
+                                <span>Blogs</span>
                             </Link>
                         </li>
                         <li>
