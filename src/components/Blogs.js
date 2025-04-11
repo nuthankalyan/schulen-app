@@ -38,28 +38,22 @@ export const Blogs = () => {
                     return;
                 }
                 
-                console.log('Fetching blogs with token:', token);
                 const response = await fetch('/blogs', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
                 
-                console.log('Response status:', response.status);
-                
                 if (!response.ok) {
-                    const errorData = await response.json().catch(e => ({ message: 'Unknown error' }));
-                    console.error('Error response:', errorData);
-                    throw new Error(errorData.message || `Server responded with status ${response.status}`);
+                    throw new Error(`Error: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('Blogs fetched:', data);
                 setBlogs(data);
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching blogs:', err);
-                setError(`Failed to load blogs: ${err.message}. Please check your connection.`);
+                setError(`Failed to load blogs. Please check your connection.`);
                 setLoading(false);
             }
         };
@@ -109,18 +103,14 @@ export const Blogs = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null); // Reset any previous errors
+        setError(null);
         
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                console.error('No authentication token found');
                 setError('You need to be logged in to create a blog');
                 return;
             }
-            
-            console.log('Submitting blog with token:', token);
-            console.log('Form data:', formData);
             
             const response = await fetch('/blogs', {
                 method: 'POST',
@@ -131,16 +121,11 @@ export const Blogs = () => {
                 body: JSON.stringify(formData)
             });
             
-            console.log('Response status:', response.status);
-            
             if (!response.ok) {
-                const errorData = await response.json().catch(e => ({ message: 'Unknown error' }));
-                console.error('Error response:', errorData);
-                throw new Error(errorData.message || `Server responded with status ${response.status}`);
+                throw new Error(`Error: ${response.status}`);
             }
             
             const newBlog = await response.json();
-            console.log('New blog created:', newBlog);
             
             // Add the new blog to the blogs state
             setBlogs([newBlog, ...blogs]);
@@ -154,7 +139,7 @@ export const Blogs = () => {
             setShowModal(false);
         } catch (err) {
             console.error('Error creating blog:', err);
-            setError(`Failed to create blog: ${err.message}. Please try again.`);
+            setError(`Failed to create blog. Please try again.`);
         }
     };
 
