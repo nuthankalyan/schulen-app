@@ -47,12 +47,19 @@ export const BrowseProjects = () => {
                 // Log the data to see what fields are available
                 console.log("Fetched projects data:", data);
                 
-                // If projects don't have username information, we might need to fetch it separately
-                // This is just a placeholder - adjust based on your actual API structure
+                // If projects don't have ownerUsername information, we might need to fetch it separately
                 const projectsWithUsernames = await Promise.all(data.map(async (project) => {
-                    // If the project already has username info, return it as is
-                    if (project.username || project.createdBy || project.owner || project.userName || project.user) {
+                    // If the project already has ownerUsername info, return it as is
+                    if (project.ownerUsername) {
                         return project;
+                    }
+                    
+                    // If the project has any other username field, use that
+                    if (project.username || project.createdBy || project.owner || project.userName || project.user) {
+                        return {
+                            ...project,
+                            ownerUsername: project.username || project.createdBy || project.owner || project.userName || project.user
+                        };
                     }
                     
                     // Otherwise, try to fetch the username for this project
@@ -63,7 +70,7 @@ export const BrowseProjects = () => {
                                 const userData = await userResponse.json();
                                 return {
                                     ...project,
-                                    username: userData.username || userData.name
+                                    ownerUsername: userData.username || userData.name
                                 };
                             }
                         }
@@ -144,15 +151,15 @@ export const BrowseProjects = () => {
             return;
         }
 
-        // Find matching projects
+        // Find matching projects by title
         const matchingProjects = projects.filter(project => 
             project.title.toLowerCase().includes(value.toLowerCase())
         );
 
-        // Extract unique usernames from projects - check multiple possible field names
+        // Extract unique usernames from projects - prioritize ownerUsername field
         const usernames = [...new Set(projects.map(project => {
-            // Check different possible username field names
-            return project.username || project.createdBy || project.owner || project.userName || project.user;
+            // First check for ownerUsername, then fall back to other fields
+            return project.ownerUsername || project.username || project.createdBy || project.owner || project.userName || project.user;
         }))].filter(username => 
             username && username.toLowerCase().includes(value.toLowerCase())
         );
@@ -188,10 +195,10 @@ export const BrowseProjects = () => {
             setSelectedUser(result.data);
             setPageTitle(`Projects by ${result.data}`);
             
-            // Filter projects by username - check multiple possible field names
+            // Filter projects by username - prioritize ownerUsername field
             const userProjects = projects.filter(project => {
-                // Get the username from any of the possible field names
-                const projectUsername = project.username || project.createdBy || project.owner || project.userName || project.user;
+                // Get the username from ownerUsername first, then fall back to other fields
+                const projectUsername = project.ownerUsername || project.username || project.createdBy || project.owner || project.userName || project.user;
                 
                 // Log for debugging
                 console.log(`Comparing project username "${projectUsername}" with selected user "${result.data}"`);
@@ -221,17 +228,17 @@ export const BrowseProjects = () => {
     const handleAddProject = async (e) => {
         e.preventDefault();
         
-        // Get the current user's username from localStorage or fetch it
+        // Get the current user's username from localStorage
         const currentUsername = localStorage.getItem('username');
         
-        // Create the new project object with username included
+        // Create the new project object with ownerUsername included
         const newProject = { 
             title, 
             description, 
             deadline, 
             domain, 
             status,
-            username: currentUsername // Add the username to the project data
+            ownerUsername: currentUsername // Use ownerUsername field
         };
         
         const token = localStorage.getItem('token');
@@ -249,9 +256,9 @@ export const BrowseProjects = () => {
             if (response.ok) {
                 const createdProject = await response.json();
                 
-                // If the backend doesn't return the username, add it manually
-                if (!createdProject.username && currentUsername) {
-                    createdProject.username = currentUsername;
+                // If the backend doesn't return the ownerUsername, add it manually
+                if (!createdProject.ownerUsername && currentUsername) {
+                    createdProject.ownerUsername = currentUsername;
                 }
                 
                 setProjects([createdProject, ...projects]); // Prepend the new project
@@ -347,7 +354,7 @@ export const BrowseProjects = () => {
         
         // Check if any projects have username information
         const projectsWithUsername = projects.filter(project => 
-            project.username || project.createdBy || project.owner || project.userName || project.user
+            project.ownerUsername || project.username || project.createdBy || project.owner || project.userName || project.user
         );
         
         console.log("Projects with username info:", projectsWithUsername);
@@ -365,7 +372,7 @@ export const BrowseProjects = () => {
         } else {
             // Test extracting usernames
             const usernames = [...new Set(projectsWithUsername.map(project => 
-                project.username || project.createdBy || project.owner || project.userName || project.user
+                project.ownerUsername || project.username || project.createdBy || project.owner || project.userName || project.user
             ))];
             
             console.log("Extracted usernames:", usernames);
@@ -376,7 +383,7 @@ export const BrowseProjects = () => {
                 console.log(`Testing filter with username: ${testUsername}`);
                 
                 const filteredByUsername = projects.filter(project => {
-                    const projectUsername = project.username || project.createdBy || project.owner || project.userName || project.user;
+                    const projectUsername = project.ownerUsername || project.username || project.createdBy || project.owner || project.userName || project.user;
                     return projectUsername && projectUsername.toLowerCase() === testUsername.toLowerCase();
                 });
                 
@@ -561,9 +568,7 @@ export const BrowseProjects = () => {
                                 
                                 <p><strong>Deadline:</strong> {project.deadline}</p>
                                 <p><strong>Domain:</strong> {project.domain}</p>
-                                {(project.username || project.createdBy || project.owner || project.userName || project.user) && 
-                                    <p><strong>Created by:</strong> {project.username || project.createdBy || project.owner || project.userName || project.user}</p>
-                                }
+                                <p><strong>Created by:</strong> {project.ownerUsername || project.username || project.createdBy || project.owner || project.userName || project.user || 'Unknown'}</p>
                                 <div className="options" onClick={(e) => e.stopPropagation()}>
                                     <button className="options-button" onClick={(e) => {
                                         const optionsMenu = e.target.nextElementSibling;

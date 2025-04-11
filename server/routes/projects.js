@@ -59,6 +59,7 @@ router.post('/', authenticate, async (req, res) => {
             domain, 
             status, 
             userId: req.user.userId,
+            ownerUsername: username,
             activities: [{
                 type: 'project_created',
                 userId: req.user.userId,

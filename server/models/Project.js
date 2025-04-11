@@ -22,6 +22,7 @@ const ProjectSchema = new mongoose.Schema({
     domain: { type: String, required: true },
     status: { type: String, required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    ownerUsername: { type: String, required: true },
     enrolledUsers: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
