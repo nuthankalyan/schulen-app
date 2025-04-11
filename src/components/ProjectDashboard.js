@@ -767,6 +767,11 @@ export const ProjectDashboard = () => {
   const saveTaskToProject = async (task) => {
     try {
       const token = localStorage.getItem('token');
+      const username = localStorage.getItem('username') || '';
+      
+      // Check if we have access to the project object and get the owner username
+      const ownerUsername = (project && project.ownerUsername) ? project.ownerUsername : username;
+      
       const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/tasks`, {
         method: 'POST',
         headers: {
@@ -776,7 +781,8 @@ export const ProjectDashboard = () => {
         body: JSON.stringify({
           title: task.title,
           description: task.description,
-          assignee: task.assignee
+          assignee: task.assignee,
+          ownerUsername: ownerUsername
         })
       });
       
@@ -796,8 +802,20 @@ export const ProjectDashboard = () => {
   const updateTaskOnServer = async (taskId, updates) => {
     try {
       const token = localStorage.getItem('token');
+      const username = localStorage.getItem('username') || '';
       
       console.log(`Updating task ${taskId} with data:`, updates);
+      
+      // Get the owner username from the project if possible
+      const ownerUsername = (project && project.ownerUsername) ? project.ownerUsername : username;
+      
+      // Include ownerUsername in the updates
+      const updatedData = {
+        ...updates,
+        ownerUsername: ownerUsername
+      };
+      
+      console.log('Sending update with data:', updatedData);
       
       const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/tasks/${taskId}`, {
         method: 'PATCH',
@@ -805,7 +823,7 @@ export const ProjectDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': token
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updatedData)
       });
       
       // Log the status of the response
