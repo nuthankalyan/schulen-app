@@ -20,27 +20,11 @@ export const Blogs = () => {
     const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [serverStatus, setServerStatus] = useState('Checking...');
     const [formData, setFormData] = useState({
         title: '',
         caption: '',
         content: ''
     });
-
-    // Check server connection
-    useEffect(() => {
-        const checkServerConnection = async () => {
-            try {
-                const response = await fetch('http://localhost:5000');
-                setServerStatus(response.ok ? 'Connected' : 'Error connecting to server');
-            } catch (err) {
-                console.error('Server connection error:', err);
-                setServerStatus('Server unavailable - please start the server');
-            }
-        };
-
-        checkServerConnection();
-    }, []);
 
     // Fetch blogs from API
     useEffect(() => {
@@ -220,19 +204,10 @@ export const Blogs = () => {
                 <div className="content-header">
                     <div className="blogs-header">
                         <h1>Blogs</h1>
-                        <div>
-                            <span style={{ 
-                                fontSize: '12px', 
-                                marginRight: '15px', 
-                                color: serverStatus.includes('Error') || serverStatus.includes('unavailable') ? 'red' : 'green' 
-                            }}>
-                                Server status: {serverStatus}
-                            </span>
-                            <button className="write-blog-btn" onClick={handleOpenModal}>
-                                <FontAwesomeIcon icon={faPen} />
-                                <span>Write New Blog</span>
-                            </button>
-                        </div>
+                        <button className="write-blog-btn" onClick={handleOpenModal}>
+                            <FontAwesomeIcon icon={faPen} />
+                            <span>Write New Blog</span>
+                        </button>
                     </div>
                 </div>
                 <div className="blogs-content">
