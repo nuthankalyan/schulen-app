@@ -28,7 +28,21 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Use CORS middleware
 app.use(cors({
-    origin: '*', // Allow all origins for testing
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:3000', 
+            'https://schulen-app.onrender.com', 
+            'https://schulen.tech', 
+            'https://www.schulen.tech'
+        ];
+        
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, origin);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
