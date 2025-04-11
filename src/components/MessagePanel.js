@@ -190,18 +190,12 @@ const MessagePanel = ({ isOpen, onClose, projectId, currentUsername, projectTitl
         throw new Error(`Failed to send message: ${response.status}`);
       }
       
-      // Emit message via socket
-      socket.emit('sendMessage', {
-        projectId,
-        message: newMessage,
-        username: currentUsername
-      });
-      
       // Clear input field
       setNewMessage('');
       setIsTyping(false);
       
-      // No need to update messages state here as we'll receive it back via socket
+      // No need to emit socket event here as the server will handle that
+      // after saving to database
     } catch (error) {
       console.error('Error sending message:', error);
     }
