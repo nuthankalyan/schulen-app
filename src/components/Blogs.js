@@ -39,7 +39,7 @@ export const Blogs = () => {
                 }
                 
                 console.log('Fetching blogs with token:', token);
-                const response = await fetch('http://localhost:5000/blogs', {
+                const response = await fetch('/blogs', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -59,7 +59,7 @@ export const Blogs = () => {
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching blogs:', err);
-                setError(`Failed to load blogs: ${err.message}. Make sure the server is running at http://localhost:5000`);
+                setError(`Failed to load blogs: ${err.message}. Please check your connection.`);
                 setLoading(false);
             }
         };
@@ -122,7 +122,7 @@ export const Blogs = () => {
             console.log('Submitting blog with token:', token);
             console.log('Form data:', formData);
             
-            const response = await fetch('http://localhost:5000/blogs', {
+            const response = await fetch('/blogs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ export const Blogs = () => {
             setShowModal(false);
         } catch (err) {
             console.error('Error creating blog:', err);
-            setError(`Failed to create blog: ${err.message}. Make sure the server is running at http://localhost:5000`);
+            setError(`Failed to create blog: ${err.message}. Please try again.`);
         }
     };
 
