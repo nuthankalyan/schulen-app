@@ -554,6 +554,12 @@ export const ProjectDashboard = () => {
     
     console.log(`Moving task from ${sourceColumnId} to ${targetColumnId}`);
     
+    // Validate that the target status is one of the accepted enum values
+    if (!['not-started', 'in-progress', 'completed'].includes(targetColumnId)) {
+      console.error(`Invalid target status: ${targetColumnId}. Must be one of: not-started, in-progress, completed`);
+      return;
+    }
+    
     // Update tasks state
     const newTasks = { ...tasks };
     
@@ -570,9 +576,11 @@ export const ProjectDashboard = () => {
     // Update on server
     updateTaskOnServer(task.id, { status: targetColumnId })
       .catch(error => {
-        console.error('Error updating task:', error);
+        console.error('Error updating task status:', error);
         // Revert state on error
         setTasks(tasks);
+        // Alert the user
+        alert(`Failed to update task status: ${error.message}`);
       });
   };
 
@@ -788,6 +796,9 @@ export const ProjectDashboard = () => {
   const updateTaskOnServer = async (taskId, updates) => {
     try {
       const token = localStorage.getItem('token');
+      
+      console.log(`Updating task ${taskId} with data:`, updates);
+      
       const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: {
@@ -797,8 +808,14 @@ export const ProjectDashboard = () => {
         body: JSON.stringify(updates)
       });
       
+      // Log the status of the response
+      console.log(`Server response status: ${response.status}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        // Get more details about the error
+        const errorText = await response.text();
+        console.error(`Server responded with status ${response.status}: ${errorText}`);
+        throw new Error(`Failed to update task: ${response.status} ${response.statusText}`);
       }
       
       const updatedTask = await response.json();
@@ -806,7 +823,7 @@ export const ProjectDashboard = () => {
       return updatedTask;
     } catch (error) {
       console.error('Error updating task:', error);
-      // You might want to show an error message to the user here
+      throw error; // Re-throw the error to be handled by the caller
     }
   };
 

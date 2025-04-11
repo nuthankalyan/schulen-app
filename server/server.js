@@ -16,7 +16,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech/'],
+        origin: ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'],
         methods: ['GET', 'POST'],
         credentials: true
     }
@@ -25,25 +25,22 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// CORS configuration
-app.use((req, res, next) => {
-    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech/'];
-    const origin = req.headers.origin;
-    
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-    
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    next();
-});
+// Use CORS middleware
+app.use(cors({
+    origin: function(origin, callback) {
+        const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
+}));
 
 app.use(express.json());
 
@@ -170,6 +167,17 @@ app.post('/login', async (req, res) => {
 
 // Use projects router
 app.use('/browseprojects', projectsRouter);
+
+// Serve manifest.json with proper CORS headers
+app.get('/manifest.json', (req, res) => {
+    try {
+        // Return the manifest.json file
+        res.sendFile('manifest.json', { root: __dirname + '/../public' });
+    } catch (error) {
+        console.error('Error serving manifest.json:', error);
+        res.status(500).json({ message: 'Error serving manifest.json' });
+    }
+});
 
 // Start the server with socket.io
 server.listen(PORT, () => {
