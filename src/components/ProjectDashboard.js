@@ -428,14 +428,17 @@ export const ProjectDashboard = () => {
     });
     
     // Get all users who have completed tasks or are in the project
-    const allUsernames = Object.keys(taskCountByUser).filter(username => 
-      username !== project.ownerUsername
-    );
+    const allUsernames = Object.keys(taskCountByUser);
 
     // Assign colors from the palette based on the user index
     const userColors = {};
     allUsernames.forEach((username, index) => {
-      userColors[username] = colorPalette[index % colorPalette.length]; // Cycle through the palette
+      // Give the owner a specific color (the last one in the palette)
+      if (username === project.ownerUsername) {
+        userColors[username] = colorPalette[3]; // Dark Green from the palette
+      } else {
+        userColors[username] = colorPalette[index % (colorPalette.length - 1)]; // Cycle through the first 3 colors
+      }
     });
     
     // Update the contributions state
