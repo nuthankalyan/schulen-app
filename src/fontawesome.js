@@ -28,7 +28,8 @@ import {
   faEnvelope, 
   faSignOutAlt, 
   faNewspaper, 
-  faPen 
+  faPen,
+  faTrash
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add all icons to the library
@@ -55,7 +56,8 @@ library.add(
   faEnvelope, 
   faSignOutAlt, 
   faNewspaper, 
-  faPen
+  faPen,
+  faTrash
 );
 
 // Export the FontAwesomeIcon component and all the icons
@@ -83,5 +85,6 @@ export {
   faEnvelope, 
   faSignOutAlt, 
   faNewspaper, 
-  faPen
+  faPen,
+  faTrash
 }; 

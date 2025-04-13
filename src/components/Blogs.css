@@ -7,7 +7,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     width: 100%;
 }
 
@@ -73,6 +73,7 @@
     height: 100%;
     text-decoration: none;
     color: inherit;
+    position: relative;
 }
 
 .blog-card:hover {
@@ -99,6 +100,50 @@
     align-items: center;
     color: #777;
     font-size: 12px;
+}
+
+.blog-card-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.edit-blog-btn,
+.delete-blog-btn {
+    background-color: rgba(240, 240, 240, 0.95);
+    color: #666;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+}
+
+.blog-card:hover .edit-blog-btn,
+.blog-card:hover .delete-blog-btn {
+    opacity: 1;
+}
+
+.edit-blog-btn:hover {
+    transform: scale(1.1);
+    background-color: rgb(41, 44, 88);
+    color: white;
+}
+
+.delete-blog-btn:hover {
+    transform: scale(1.1);
+    background-color: #dc3545;
+    color: white;
 }
 
 .modal-overlay {
@@ -340,4 +385,36 @@
 .yes-btn:hover {
     background-color: #c82333;
     transform: translateY(-2px);
+}
+
+.blogs-tabs {
+    display: flex;
+    justify-content: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 10px;
+    width: 100%;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 8px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: rgb(41, 44, 88);
+    background-color: rgba(41, 44, 88, 0.05);
+}
+
+.tab-btn.active {
+    color: white;
+    background-color: rgb(41, 44, 88);
 } 

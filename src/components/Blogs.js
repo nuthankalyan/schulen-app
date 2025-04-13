@@ -10,7 +10,8 @@ import {
     faPen,
     faTimes,
     faArrowLeft,
-    faTimes as faTimesCircle
+    faTimes as faTimesCircle,
+    faTrash
 } from '../fontawesome';
 import { Header } from './Header';
 import config from '../config';
@@ -28,6 +29,12 @@ export const Blogs = () => {
     const [showModal, setShowModal] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [serverStatus, setServerStatus] = useState('Checking...');
+    const [activeTab, setActiveTab] = useState('all'); // 'all' or 'my'
+    const [filteredBlogs, setFilteredBlogs] = useState([]);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [blogToDelete, setBlogToDelete] = useState(null);
+    const [editMode, setEditMode] = useState(false);
+    const [blogToEdit, setBlogToEdit] = useState(null);
     const [formData, setFormData] = useState({
         title: '',
         caption: '',
@@ -148,6 +155,19 @@ export const Blogs = () => {
         fetchBlogs();
     }, []);
 
+    // Filter blogs based on active tab
+    useEffect(() => {
+        if (blogs.length > 0) {
+            if (activeTab === 'all') {
+                setFilteredBlogs(blogs);
+            } else {
+                const userId = localStorage.getItem('userId');
+                const userBlogs = blogs.filter(blog => blog.author._id === userId || blog.author.id === userId);
+                setFilteredBlogs(userBlogs);
+            }
+        }
+    }, [blogs, activeTab]);
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
@@ -159,10 +179,12 @@ export const Blogs = () => {
     };
 
     const handleCloseModal = () => {
-        if (formData.title || formData.caption || formData.content) {
+        if (formData.title !== (blogToEdit?.title || '') || 
+            formData.caption !== (blogToEdit?.caption || '') || 
+            formData.content !== (blogToEdit?.content || '')) {
             setShowConfirmation(true);
         } else {
-            setShowModal(false);
+            resetFormAndCloseModal();
         }
     };
 
@@ -172,12 +194,7 @@ export const Blogs = () => {
 
     const handleConfirmCancel = () => {
         setShowConfirmation(false);
-        setShowModal(false);
-        setFormData({
-            title: '',
-            caption: '',
-            content: ''
-        });
+        resetFormAndCloseModal();
     };
 
     const handleInputChange = (e) => {
@@ -185,6 +202,34 @@ export const Blogs = () => {
         setFormData({
             ...formData,
             [name]: value
+        });
+    };
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+    };
+
+    const handleEditClick = (e, blog) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setBlogToEdit(blog);
+        setFormData({
+            title: blog.title,
+            caption: blog.caption,
+            content: blog.content
+        });
+        setEditMode(true);
+        setShowModal(true);
+    };
+
+    const resetFormAndCloseModal = () => {
+        setShowModal(false);
+        setEditMode(false);
+        setBlogToEdit(null);
+        setFormData({
+            title: '',
+            caption: '',
+            content: ''
         });
     };
 
@@ -199,13 +244,19 @@ export const Blogs = () => {
                 return;
             }
             
-            console.log('Creating blog directly at:', BLOGS_ENDPOINT);
+            const url = editMode 
+                ? `${BLOGS_ENDPOINT}/${blogToEdit._id}` 
+                : BLOGS_ENDPOINT;
+            
+            const method = editMode ? 'PUT' : 'POST';
+            
+            console.log(`${editMode ? 'Updating' : 'Creating'} blog at: ${url}`);
             console.log('Form data:', formData);
             
             // First attempt - try with fetch's json() method
             try {
-                const response = await fetch(BLOGS_ENDPOINT, {
-                    method: 'POST',
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
@@ -222,25 +273,27 @@ export const Blogs = () => {
                     throw new Error(`API request failed with status ${response.status}`);
                 }
                 
-                const newBlog = await response.json();
-                console.log('New blog created:', newBlog);
+                const responseData = await response.json();
+                console.log(`Blog ${editMode ? 'updated' : 'created'}:`, responseData);
                 
-                // Add the new blog to the blogs state
-                setBlogs([newBlog, ...blogs]);
+                if (editMode) {
+                    // Update the blogs state with the edited blog
+                    setBlogs(blogs.map(blog => 
+                        blog._id === blogToEdit._id ? responseData : blog
+                    ));
+                } else {
+                    // Add the new blog to the blogs state
+                    setBlogs([responseData, ...blogs]);
+                }
                 
                 // Reset form and close modal
-                setFormData({
-                    title: '',
-                    caption: '',
-                    content: ''
-                });
-                setShowModal(false);
+                resetFormAndCloseModal();
             } catch (jsonError) {
                 // If json() method fails, try the manual approach as fallback
                 console.error('Error with json() method, trying manual parsing:', jsonError);
                 
-                const manualResponse = await fetch(BLOGS_ENDPOINT, {
-                    method: 'POST',
+                const manualResponse = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
@@ -262,33 +315,89 @@ export const Blogs = () => {
                 }
                 
                 try {
-                    const newBlog = JSON.parse(text);
-                    console.log('New blog created (manual parsing):', newBlog);
+                    const parsedData = JSON.parse(text);
+                    console.log(`Blog ${editMode ? 'updated' : 'created'} (manual parsing):`, parsedData);
                     
-                    // Add the new blog to the blogs state
-                    setBlogs([newBlog, ...blogs]);
+                    if (editMode) {
+                        // Update the blogs state with the edited blog
+                        setBlogs(blogs.map(blog => 
+                            blog._id === blogToEdit._id ? parsedData : blog
+                        ));
+                    } else {
+                        // Add the new blog to the blogs state
+                        setBlogs([parsedData, ...blogs]);
+                    }
                     
                     // Reset form and close modal
-                    setFormData({
-                        title: '',
-                        caption: '',
-                        content: ''
-                    });
-                    setShowModal(false);
+                    resetFormAndCloseModal();
                 } catch (parseError) {
                     console.error('Manual JSON parsing failed:', parseError);
                     throw new Error('Failed to parse server response as JSON');
                 }
             }
         } catch (err) {
-            console.error('Error creating blog:', err);
-            setError(`Failed to create blog: ${err.message}`);
+            console.error(`Error ${editMode ? 'updating' : 'creating'} blog:`, err);
+            setError(`Failed to ${editMode ? 'update' : 'create'} blog: ${err.message}`);
         }
     };
 
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'short', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
+    const handleDeleteClick = (e, blog) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setBlogToDelete(blog);
+        setShowDeleteConfirmation(true);
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setBlogToDelete(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!blogToDelete) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('You need to be logged in to delete a blog');
+                return;
+            }
+
+            console.log(`Deleting blog with ID: ${blogToDelete._id}`);
+            
+            const response = await fetch(`${BLOGS_ENDPOINT}/${blogToDelete._id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete blog: ${response.status}`);
+            }
+
+            // Remove the deleted blog from the blogs state
+            const updatedBlogs = blogs.filter(blog => blog._id !== blogToDelete._id);
+            setBlogs(updatedBlogs);
+            
+            // Close the confirmation modal
+            setShowDeleteConfirmation(false);
+            setBlogToDelete(null);
+        } catch (err) {
+            console.error('Error deleting blog:', err);
+            setError(`Failed to delete blog: ${err.message}`);
+        }
+    };
+
+    const isCurrentUserBlog = (blog) => {
+        const userId = localStorage.getItem('userId');
+        return blog.author._id === userId || blog.author.id === userId;
     };
 
     return (
@@ -337,20 +446,38 @@ export const Blogs = () => {
                             <span>Write New Blog</span>
                         </button>
                     </div>
+                    <div className="blogs-tabs">
+                        <button 
+                            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                            onClick={() => handleTabChange('all')}
+                        >
+                            All Blogs
+                        </button>
+                        <button 
+                            className={`tab-btn ${activeTab === 'my' ? 'active' : ''}`}
+                            onClick={() => handleTabChange('my')}
+                        >
+                            My Blogs
+                        </button>
+                    </div>
                 </div>
                 <div className="blogs-content">
                     {loading ? (
                         <div className="loading">Loading...</div>
                     ) : error ? (
                         <div className="error">{error}</div>
-                    ) : blogs.length === 0 ? (
+                    ) : filteredBlogs.length === 0 ? (
                         <div className="empty-state">
-                            <h2>No Blogs Yet</h2>
-                            <p>Be the first to share your knowledge! Click on "Write New Blog" to create a blog post.</p>
+                            <h2>{activeTab === 'all' ? 'No Blogs Yet' : 'You Haven\'t Written Any Blogs Yet'}</h2>
+                            <p>
+                                {activeTab === 'all' 
+                                    ? 'Be the first to share your knowledge! Click on "Write New Blog" to create a blog post.' 
+                                    : 'Share your knowledge with the community. Click on "Write New Blog" to create your first blog post.'}
+                            </p>
                         </div>
                     ) : (
                         <div className="blogs-grid">
-                            {blogs.map((blog) => (
+                            {filteredBlogs.map((blog) => (
                                 <Link 
                                     to={`/main/blogs/${blog._id}`} 
                                     key={blog._id}
@@ -362,6 +489,20 @@ export const Blogs = () => {
                                         <span>{blog.author.username}</span>
                                         <span>{formatDate(blog.createdAt)}</span>
                                     </div>
+                                    {isCurrentUserBlog(blog) && (
+                                        <div className="blog-card-actions">
+                                            <div className="edit-blog-btn"
+                                                onClick={(e) => handleEditClick(e, blog)}
+                                            >
+                                                <FontAwesomeIcon icon={faPen} />
+                                            </div>
+                                            <div className="delete-blog-btn"
+                                                onClick={(e) => handleDeleteClick(e, blog)}
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </Link>
                             ))}
                         </div>
@@ -369,12 +510,12 @@ export const Blogs = () => {
                 </div>
             </div>
 
-            {/* Write Blog Modal */}
+            {/* Write/Edit Blog Modal */}
             {showModal && (
                 <div className="modal-overlay">
                     <div className="blog-editor-modal">
                         <div className="modal-header">
-                            <h2>Create a New Story</h2>
+                            <h2>{editMode ? 'Edit Blog' : 'Create a New Story'}</h2>
                             <button className="close-button" onClick={handleCloseModal}>
                                 <FontAwesomeIcon icon={faTimes} />
                             </button>
@@ -417,14 +558,14 @@ export const Blogs = () => {
                             </div>
                             <div className="editor-toolbar">
                                 <div className="editor-info">
-                                    <span>Write something inspiring or informative</span>
+                                    <span>{editMode ? 'Edit your blog post' : 'Write something inspiring or informative'}</span>
                                 </div>
                                 <div className="publish-actions">
                                     <button type="button" className="cancel-btn" onClick={handleCloseModal}>
                                         Cancel
                                     </button>
                                     <button type="submit" className="publish-btn">
-                                        Publish
+                                        {editMode ? 'Update' : 'Publish'}
                                     </button>
                                 </div>
                             </div>
@@ -452,6 +593,32 @@ export const Blogs = () => {
                                     onClick={handleConfirmCancel}
                                 >
                                     Discard <FontAwesomeIcon icon={faTimesCircle} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirmation && (
+                <div className="modal-overlay">
+                    <div className="modal-content confirmation-content">
+                        <div className="confirmation-modal">
+                            <h2>Delete Blog</h2>
+                            <p>Are you sure you want to delete "{blogToDelete?.title}"? This action cannot be undone.</p>
+                            <div className="confirmation-buttons">
+                                <button 
+                                    className="no-btn" 
+                                    onClick={handleCancelDelete}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className="yes-btn" 
+                                    onClick={handleConfirmDelete}
+                                >
+                                    Delete <FontAwesomeIcon icon={faTrash} />
                                 </button>
                             </div>
                         </div>
