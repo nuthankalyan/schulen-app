@@ -1,17 +1,21 @@
+// Load environment variables first
+const dotenv = require('dotenv');
+const path = require('path');
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+console.log('MongoDB URI:', process.env.MONGODB_URI); // Debug log
+console.log('Current directory:', __dirname);
+
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const http = require('http');
 const socketIo = require('socket.io');
 const projectsRouter = require('./routes/projects');
 const blogsRouter = require('./routes/blogs');
 const User = require('./models/User');
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
