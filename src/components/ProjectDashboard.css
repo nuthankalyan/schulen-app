@@ -732,8 +732,9 @@
 /* Meeting Controls */
 .meeting-controls {
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  gap: px;
+  gap: 80px;
   margin-bottom: 20px;
 }
 
