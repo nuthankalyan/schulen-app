@@ -68,6 +68,6 @@ form {
 
 #signup_button:active {
     transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(41, 44, 88, 0.1);
+    box-shadow: 0 3px 5px rgba(41, 44, 88, 0.1);
 }
 
