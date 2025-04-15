@@ -49,6 +49,11 @@ const ProjectSchema = new mongoose.Schema({
         taskCount: { type: Number, default: 0 },
         color: { type: String, default: '#3498db' } // Store user's chart color
     }],
+    // Meeting status
+    meetingActive: { type: Boolean, default: false },
+    meetingCreator: { type: String }, // Username of the meeting creator
+    meetingStartTime: { type: Date },
+    meetingRoom: { type: String }, // Jitsi meeting room ID
     // Additional features
     resources: [{
         title: { type: String },
