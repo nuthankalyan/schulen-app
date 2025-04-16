@@ -39,19 +39,45 @@ app.use(cors({
     allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
 }));
 
-// Set Content Security Policy
+// Handle preflight OPTIONS requests globally
+app.options('*', cors({
+    origin: ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
+}));
+
+// Set Content Security Policy and CORS headers
 app.use((req, res, next) => {
-    // Allow both localhost and the deployment domains
+    // Get the origin from request
+    const origin = req.headers.origin;
+    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
+    
+    // Set the correct Access-Control-Allow-Origin header
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    }
+    
+    // Set other CORS headers
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Set Content Security Policy
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self'; img-src 'self' data: blob: * http://localhost:* http://localhost:5000 https://schulen-app.onrender.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
+        "default-src 'self'; img-src 'self' data: blob: * http://localhost:* https://schulen-app.onrender.com https://schulen-backend.onrender.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
     );
     
-    // Set cross-origin headers for all responses
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS');
+    // Set Cross-Origin-Resource-Policy
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+    }
     
     next();
 });
@@ -193,21 +219,58 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Login route
+// Handle OPTIONS preflight request for login route specifically
+app.options('/login', (req, res) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    res.status(204).end();
+});
+
+// Login route with explicit CORS handling
 app.post('/login', async (req, res) => {
+    // Set CORS headers for login specifically
+    const origin = req.headers.origin;
+    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    }
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (!user) {
-        return res.status(400).json({ message: 'Invalid username or password' });
-    }
+    
+    try {
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid username or password' });
+        }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-        return res.status(400).json({ message: 'Invalid username or password' });
-    }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid username or password' });
+        }
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, message: 'Login successful' });
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
+        res.json({ token, userId: user._id, message: 'Login successful' });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Server error during login' });
+    }
 });
 
 // Use projects router
