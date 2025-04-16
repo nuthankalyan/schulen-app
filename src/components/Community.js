@@ -3,6 +3,7 @@ import './Community.css';
 import { Header } from './Header';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '../fontawesome';
+import config from '../config';
 import { 
   faProjectDiagram, 
   faFolderOpen, 
@@ -410,7 +411,7 @@ const Community = () => {
     const cursorPositionRef = useRef(0);
     const tagInputRef = useRef(null);
     
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    const API_URL = config.API_BASE_URL || 'http://localhost:5000';
     
     const textareaRef = useRef(null);
     
