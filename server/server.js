@@ -284,9 +284,19 @@ app.use('/community', communityRouter);
 
 // Handle OPTIONS requests for manifest.json (CORS preflight)
 app.options('/manifest.json', (req, res) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    const origin = req.headers.origin;
+    const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept, X-Requested-With');
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
     res.status(204).end();
 });
 
@@ -294,10 +304,18 @@ app.options('/manifest.json', (req, res) => {
 app.get('/manifest.json', (req, res) => {
     try {
         // Set explicit CORS headers for the manifest.json file
-        res.header('Access-Control-Allow-Origin', '*');
+        const origin = req.headers.origin;
+        const allowedOrigins = ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'];
+        
+        if (origin && allowedOrigins.includes(origin)) {
+            res.header('Access-Control-Allow-Origin', origin);
+        } else {
+            res.header('Access-Control-Allow-Origin', '*');
+        }
+        
         res.header('Access-Control-Allow-Methods', 'GET');
-        res.header('Access-Control-Allow-Headers', 'Content-Type');
-        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+        res.header('Cross-Origin-Resource-Policy', 'cross-origin');
         
         // Return the manifest.json file
         res.sendFile(path.join(__dirname, '../public/manifest.json'));
@@ -307,11 +325,40 @@ app.get('/manifest.json', (req, res) => {
     }
 });
 
+// Additional endpoint to serve manifest directly from public
+app.get('/public/manifest.json', (req, res) => {
+    // Set explicit CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.header('Content-Type', 'application/json');
+    
+    // Return the manifest.json file from public
+    try {
+        res.sendFile(path.join(__dirname, '../public/manifest.json'));
+    } catch (error) {
+        console.error('Error serving manifest.json from public folder:', error);
+        res.status(500).json({ message: 'Error serving manifest.json' });
+    }
+});
+
 // Serve static files from the public directory with CORS headers
 app.use(express.static(path.join(__dirname, '../build'), {
-    setHeaders: function (res, filePath) {
+    setHeaders: function (res, filePath, stat) {
+        // Add appropriate headers for manifest.json and other important static files
         if (path.extname(filePath) === '.json' || filePath.includes('manifest.json')) {
+            // For manifest.json and other JSON files
             res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'no-cache');
+        } else if (path.extname(filePath) === '.js') {
+            // For JavaScript files
+            res.setHeader('Content-Type', 'application/javascript');
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        } else if (path.extname(filePath) === '.css') {
+            // For CSS files
+            res.setHeader('Content-Type', 'text/css');
             res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         }
     }
