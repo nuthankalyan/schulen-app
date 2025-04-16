@@ -60,7 +60,7 @@ app.use(express.json());
 
 // Basic health check route
 app.get('/', (req, res) => {
-    res.status(200).json({ message: 'Server is running' });
+    res.status(200).json({ mes: 'Server is running' });
 });
 
 // Connect to MongoDB
