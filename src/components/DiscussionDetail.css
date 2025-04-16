@@ -1,0 +1,350 @@
+.discussion-detail-header {
+    padding: 20px;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #3659e3;
+    font-weight: 500;
+}
+
+.back-link svg {
+    margin-right: 8px;
+}
+
+.discussion-detail-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.discussion-main {
+    background-color: white;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 30px;
+    border: 1px solid #e1e4e8;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.discussion-main h1 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.discussion-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.discussion-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+}
+
+.discussion-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    background-color: #f0f0f0;
+    color: #555;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+.replies-section {
+    background-color: white;
+    border-radius: 10px;
+    padding: 25px;
+    border: 1px solid #e1e4e8;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.replies-section h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.no-replies {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.replies-list {
+    margin-bottom: 30px;
+}
+
+.reply-card {
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border-left: 3px solid #3659e3;
+}
+
+.reply-content {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #333;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+}
+
+.reply-meta {
+    font-size: 13px;
+    color: #666;
+    text-align: right;
+}
+
+.reply-form {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e4e8;
+}
+
+.reply-form h3 {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.auto-resize-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    resize: none;
+    overflow: hidden;
+    font-size: 15px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: height 0.2s ease;
+}
+
+.reply-form textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    resize: none;
+    overflow: hidden;
+    font-size: 15px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.reply-btn {
+    background-color: #3659e3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    float: right;
+}
+
+.reply-btn:hover {
+    background-color: #2941b2;
+}
+
+.loading, .error, .not-found {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 18px;
+    color: #666;
+}
+
+.error {
+    color: #d9534f;
+}
+
+.not-found {
+    color: #f0ad4e;
+}
+
+.image-upload-button {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.image-upload-button label {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f0f0f0;
+    color: #555;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.image-upload-button label:hover {
+    background-color: #e0e0e0;
+}
+
+.image-upload-button svg {
+    margin-right: 8px;
+}
+
+.image-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.image-preview-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-filename {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 10px;
+    padding: 3px 5px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.remove-image {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.remove-image:hover {
+    opacity: 1;
+}
+
+.content-with-images {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.embedded-image {
+    display: block;
+    max-width: 90%;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: auto;
+    max-height: 300px;
+    object-fit: contain;
+    border: 1px solid #e1e4e8;
+}
+
+.image-load-error {
+    color: #d9534f;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.image-load-error:before {
+    content: "⚠️";
+    margin-right: 8px;
+}
+
+.image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 200px;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.image-error-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #d9534f;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.retry-button {
+    margin-top: 8px;
+    padding: 5px 10px;
+    background-color: #3659e3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.retry-button:hover {
+    background-color: #2941b2;
+}
+
+.diagnostic-info {
+    font-size: 12px;
+    color: #666;
+} 

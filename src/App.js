@@ -12,6 +12,7 @@ import { ProjectDashboard } from './components/ProjectDashboard';
 import { Community } from './components/Community';
 import { Blogs } from './components/Blogs';
 import { BlogPost } from './components/BlogPost';
+import DiscussionDetail from './components/DiscussionDetail';
 
 const PrivateRoute = ({ element: Component, ...rest }) => {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -31,6 +32,7 @@ function App() {
       <Route path="/main/myprojects" element={<PrivateRoute element={MyProjects} />} />
       <Route path="/main/project-dashboard/:id" element={<PrivateRoute element={ProjectDashboard} />} />
       <Route path="/main/community" element={<PrivateRoute element={Community} />} />
+      <Route path="/main/community/:id" element={<PrivateRoute element={DiscussionDetail} />} />
       <Route path="/main/blogs" element={<PrivateRoute element={Blogs} />} />
       <Route path="/main/blogs/:blogId" element={<PrivateRoute element={BlogPost} />} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -15,6 +15,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const projectsRouter = require('./routes/projects');
 const blogsRouter = require('./routes/blogs');
+const communityRouter = require('./routes/community');
 const User = require('./models/User');
 
 const app = express();
@@ -51,6 +52,26 @@ app.use(cors({
     credentials: true,
     allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
 }));
+
+// Set Content Security Policy
+app.use((req, res, next) => {
+    // Get the origin from request (for dev and prod environments)
+    const origin = req.get('origin') || 'http://localhost:3000';
+    
+    // Allow both localhost and the deployment domain
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; img-src 'self' data: blob: * http://localhost:* http://localhost:5000 https://schulen-app.onrender.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
+    );
+    
+    // Set cross-origin headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    
+    next();
+});
 
 app.use(express.json());
 
@@ -185,6 +206,9 @@ app.use('/browseprojects', projectsRouter);
 
 // Use blogs router
 app.use('/blogs', blogsRouter);
+
+// Use community router
+app.use('/community', communityRouter);
 
 // Serve manifest.json with proper CORS headers
 app.get('/manifest.json', (req, res) => {
