@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    // Handle chat messages
+    // Handle chat message
     socket.on('sendMessage', async (data) => {
         const { projectId, message, username } = data;
         
