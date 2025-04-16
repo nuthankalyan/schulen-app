@@ -33,21 +33,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Use CORS middleware
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:3000', 
-            'https://schulen-app.onrender.com', 
-            'https://schulen.tech', 
-            'https://www.schulen.tech'
-        ];
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, origin);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: ['http://localhost:3000', 'https://schulen-app.onrender.com', 'https://schulen.tech', 'https://www.schulen.tech'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type,Authorization,Origin,Accept,X-Requested-With'
@@ -55,16 +41,13 @@ app.use(cors({
 
 // Set Content Security Policy
 app.use((req, res, next) => {
-    // Get the origin from request (for dev and prod environments)
-    const origin = req.get('origin') || 'http://localhost:3000';
-    
-    // Allow both localhost and the deployment domain
+    // Allow both localhost and the deployment domains
     res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; img-src 'self' data: blob: * http://localhost:* http://localhost:5000 https://schulen-app.onrender.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
     );
     
-    // Set cross-origin headers
+    // Set cross-origin headers for all responses
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS');
@@ -236,15 +219,44 @@ app.use('/blogs', blogsRouter);
 // Use community router
 app.use('/community', communityRouter);
 
+// Handle OPTIONS requests for manifest.json (CORS preflight)
+app.options('/manifest.json', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.status(204).end();
+});
+
 // Serve manifest.json with proper CORS headers
 app.get('/manifest.json', (req, res) => {
     try {
+        // Set explicit CORS headers for the manifest.json file
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET');
+        res.header('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        
         // Return the manifest.json file
-        res.sendFile('manifest.json', { root: __dirname + '/../public' });
+        res.sendFile(path.join(__dirname, '../public/manifest.json'));
     } catch (error) {
         console.error('Error serving manifest.json:', error);
         res.status(500).json({ message: 'Error serving manifest.json' });
     }
+});
+
+// Serve static files from the public directory with CORS headers
+app.use(express.static(path.join(__dirname, '../build'), {
+    setHeaders: function (res, filePath) {
+        if (path.extname(filePath) === '.json' || filePath.includes('manifest.json')) {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        }
+    }
+}));
+
+// Catch-all route for React's client-side routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../build/index.html'));
 });
 
 // Start the server with socket.io
