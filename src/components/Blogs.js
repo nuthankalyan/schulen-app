@@ -440,25 +440,27 @@ export const Blogs = () => {
             <div className="content">
                 <div className="content-header">
                     <div className="blogs-header">
-                        <h1>Blogs</h1>
-                        <button className="write-blog-btn" onClick={handleOpenModal}>
-                            <FontAwesomeIcon icon={faPen} />
-                            <span>Write New Blog</span>
-                        </button>
-                    </div>
-                    <div className="blogs-tabs">
-                        <button 
-                            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                            onClick={() => handleTabChange('all')}
-                        >
-                            All Blogs
-                        </button>
-                        <button 
-                            className={`tab-btn ${activeTab === 'my' ? 'active' : ''}`}
-                            onClick={() => handleTabChange('my')}
-                        >
-                            My Blogs
-                        </button>
+                        <div className="blogs-header-top">
+                            <h1>Blogs</h1>
+                            <button className="write-blog-btn" onClick={handleOpenModal}>
+                                <FontAwesomeIcon icon={faPen} />
+                                <span>Write New Blog</span>
+                            </button>
+                        </div>
+                        <div className="blogs-tabs">
+                            <button 
+                                className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                                onClick={() => handleTabChange('all')}
+                            >
+                                All Blogs
+                            </button>
+                            <button 
+                                className={`tab-btn ${activeTab === 'my' ? 'active' : ''}`}
+                                onClick={() => handleTabChange('my')}
+                            >
+                                My Blogs
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div className="blogs-content">
