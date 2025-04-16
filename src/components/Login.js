@@ -141,7 +141,10 @@ export const Login = () => {
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
-                                        <span className="loader"></span>
+                                        <>
+                                            <span className="loader"></span>
+                                            Signing in...
+                                        </>
                                     ) : (
                                         'Sign In'
                                     )}

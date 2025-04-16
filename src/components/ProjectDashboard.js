@@ -28,6 +28,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
+import io from 'socket.io-client';
+import JitsiMeetComponent from './JitsiMeetComponent';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -194,6 +196,17 @@ export const ProjectDashboard = () => {
     '#008000'  // Dark Green
   ];
 
+  // Add state for managing meeting
+  const [meetingActive, setMeetingActive] = useState(false);
+  const [meetingCreator, setMeetingCreator] = useState(null);
+
+  // Socket reference
+  const socketRef = useRef(null);
+
+  // Add state for Jitsi meeting
+  const [showMeeting, setShowMeeting] = useState(false);
+  const [meetingRoom, setMeetingRoom] = useState('');
+
   // Fetch project data
   const fetchProject = useCallback(async () => {
     if (!token) {
@@ -250,38 +263,11 @@ export const ProjectDashboard = () => {
         const accessData = await accessResponse.json();
         console.log("Access check response:", accessData);
         setHasAccess(accessData.hasAccess);
-        
-        if (!accessData.hasAccess) {
-          console.log("Access denied by API");
-          
-          // Direct access check for enrolled users
-          const currentUserId = localStorage.getItem('userId');
-          
-          // Perform client-side check with the project data
-          if (data.enrolledUsers && Array.isArray(data.enrolledUsers)) {
-            // Check if current user is in the enrolledUsers array
-            const isDirectlyEnrolled = data.enrolledUsers.some(userId => 
-              userId === currentUserId || 
-              (userId && userId.toString && userId.toString() === currentUserId)
-            );
-            
-            if (isDirectlyEnrolled) {
-              console.log("User is directly enrolled in the project, overriding API response");
-              setHasAccess(true);
-              setError(null);
-              return; // Skip the error message and redirect
-            }
-          }
-          
-          setError('You do not have access to this project dashboard');
-          setTimeout(() => {
-            navigate('/main/myprojects');
-          }, 3000);
-        }
       } else {
-        console.log("Access check failed, falling back to client-side check");
-        // Fallback to client-side access check
-        checkAccessClientSide(data);
+        console.log("Access check failed, using client-side fallback");
+        // Use client-side fallback if API fails
+        const hasAccess = checkAccessClientSide(data);
+        setHasAccess(hasAccess);
       }
       
     } catch (error) {
@@ -294,57 +280,23 @@ export const ProjectDashboard = () => {
 
   // Fallback client-side access check
   const checkAccessClientSide = (projectData) => {
-    if (!projectData || !username) {
-      setHasAccess(false);
-      return;
-    }
-
+    if (!projectData) return false;
+    
     const currentUserId = localStorage.getItem('userId');
-
-    // Check if user is the owner
-    if (projectData.userId === currentUserId || 
-        (projectData.userId && projectData.userId.toString() === currentUserId)) {
-      setHasAccess(true);
-      return;
-    }
-
+    if (!currentUserId) return false;
+    
+    // Check if user is the project owner
+    const isOwner = projectData.userId === currentUserId;
+    
     // Check if user is enrolled
-    let isEnrolled = false;
-
-    // Check enrollment structure - handle both object IDs and string comparisons
-    if (projectData.enrolledUsers && Array.isArray(projectData.enrolledUsers)) {
-      isEnrolled = projectData.enrolledUsers.some(enrolledUser => {
-        // If enrolledUser is an object with username property
-        if (typeof enrolledUser === 'object' && enrolledUser !== null) {
-          // Check if username matches
-          if (enrolledUser.username === username) return true;
-          
-          // Check if it has an _id property that matches userId
-          if (enrolledUser._id === currentUserId) return true;
-        }
-        
-        // If enrolledUser is a string representation of userId
-        if (typeof enrolledUser === 'string' && (enrolledUser === currentUserId)) return true;
-        
-        // If enrolledUser is an object ID
-        if (enrolledUser && typeof enrolledUser.toString === 'function') {
-          return enrolledUser.toString() === currentUserId;
-        }
-        
-        return false;
-      });
-    }
-
-    // Check legacy enrollments
-    if (!isEnrolled && projectData.enrollments && Array.isArray(projectData.enrollments)) {
-      isEnrolled = projectData.enrollments.some(enrollment => 
-        (enrollment.username === username && enrollment.status === 'accepted') ||
-        (enrollment.userId === currentUserId && enrollment.status === 'accepted')
-      );
-    }
-
-    console.log("Access check result:", { isEnrolled, userId: currentUserId, enrolledUsers: projectData.enrolledUsers });
-    setHasAccess(isEnrolled);
+    const isEnrolled = projectData.enrolledUsers && 
+                      Array.isArray(projectData.enrolledUsers) &&
+                      projectData.enrolledUsers.some(id => 
+                        id.toString() === currentUserId || 
+                        (typeof id === 'object' && id._id && id._id.toString() === currentUserId)
+                      );
+    
+    return isOwner || isEnrolled;
   };
 
   useEffect(() => {
@@ -937,6 +889,249 @@ export const ProjectDashboard = () => {
     }
   };
 
+  // Create a meeting function
+  const createMeeting = async () => {
+    try {
+      // Check if token exists
+      if (!token) {
+        alert('Authentication token missing. Please log in again.');
+        navigate('/login');
+        return;
+      }
+
+      // Generate a unique meeting room ID based on project ID and timestamp
+      const roomName = `schulen-project-${id}-${Date.now()}`;
+      setMeetingRoom(roomName);
+      
+      console.log(`Creating meeting with room name: ${roomName}`);
+      console.log(`Using token: ${token.substring(0, 10)}...`);
+      
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/meeting`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          active: true,
+          creatorUsername: username,
+          roomName: roomName
+        })
+      });
+
+      // Get full response text for better debugging
+      const responseText = await response.text();
+      console.log('Server response:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error(`Server returned invalid JSON: ${responseText}`);
+      }
+
+      if (!response.ok) {
+        console.error('Server responded with error:', response.status, data);
+        throw new Error(`Failed to create meeting: ${data.message || response.statusText}`);
+      }
+      
+      // Update local state
+      setMeetingActive(data.meetingActive);
+      setMeetingCreator(data.meetingCreator);
+      
+      // Update the project state as well
+      setProject({
+        ...project,
+        meetingActive: data.meetingActive,
+        meetingCreator: data.meetingCreator,
+        meetingStartTime: data.meetingStartTime,
+        meetingRoom: roomName
+      });
+
+      // Emit socket event to notify other users
+      if (socketRef.current) {
+        socketRef.current.emit('meetingStatusChanged', {
+          projectId: id,
+          active: true,
+          creator: username,
+          roomName: roomName
+        });
+      }
+      
+      // Show the meeting interface
+      setShowMeeting(true);
+
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      alert(`Failed to create meeting: ${error.message}`);
+    }
+  };
+
+  // Enter existing meeting
+  const joinMeeting = () => {
+    // Use the room name from the project state
+    if (project && project.meetingRoom) {
+      setMeetingRoom(project.meetingRoom);
+      setShowMeeting(true);
+    } else {
+      alert('Meeting room information is missing. Please try again later.');
+    }
+  };
+
+  // Handle closing the meeting
+  const closeMeeting = async () => {
+    try {
+      // Close the meeting UI first to provide immediate feedback
+      setShowMeeting(false);
+      
+      // If the user is the creator, end the meeting for everyone
+      if (meetingCreator === username) {
+        await endMeeting();
+      } else {
+        console.log('Left meeting without ending it for everyone');
+      }
+    } catch (error) {
+      console.error('Error in closeMeeting:', error);
+      // The UI is already closed at this point, so we just log the error
+    }
+  };
+
+  // End a meeting function
+  const endMeeting = async () => {
+    try {
+      console.log('Ending meeting for all participants...');
+      
+      // First, check if meeting is actually active to avoid unnecessary API calls
+      if (!meetingActive) {
+        console.log('Meeting is already inactive, skipping API call');
+        setShowMeeting(false);
+        return;
+      }
+      
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/meeting`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          active: false
+        })
+      });
+
+      // Log the raw response for debugging
+      console.log(`End meeting response status: ${response.status}`);
+      
+      // Get the response text for better error handling
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      // Try to parse the JSON response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        throw new Error(`Server returned invalid JSON: ${responseText}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${data.message || response.statusText}`);
+      }
+      
+      // Update local state
+      setMeetingActive(false);
+      setMeetingCreator(null);
+      setMeetingRoom('');
+      setShowMeeting(false);
+      
+      // Update the project state as well
+      setProject({
+        ...project,
+        meetingActive: false,
+        meetingCreator: null,
+        meetingStartTime: null,
+        meetingRoom: null
+      });
+
+      // Emit socket event to notify other users
+      if (socketRef.current) {
+        socketRef.current.emit('meetingStatusChanged', {
+          projectId: id,
+          active: false,
+          creator: null,
+          roomName: null
+        });
+      }
+
+      console.log('Meeting ended successfully for all participants');
+    } catch (error) {
+      console.error('Error ending meeting:', error);
+      
+      // Even if the API call fails, we should update the UI state
+      // This ensures the user can still close the meeting interface
+      setShowMeeting(false);
+      
+      // Show a more helpful error message
+      alert(`Failed to end meeting: ${error.message}. The meeting interface has been closed, but the meeting may still be active for other users.`);
+    }
+  };
+
+  // Socket.io connection
+  useEffect(() => {
+    if (hasAccess && id) {
+      // Connect to socket.io server
+      socketRef.current = io(config.API_BASE_URL);
+      
+      // Join project room
+      socketRef.current.emit('joinProject', id);
+      
+      // Listen for meeting status changes
+      socketRef.current.on('meetingStatusChanged', (data) => {
+        console.log('Meeting status changed:', data);
+        setMeetingActive(data.active);
+        setMeetingCreator(data.creator);
+        
+        // Update project state with room information
+        setProject(prevProject => ({
+          ...prevProject,
+          meetingActive: data.active,
+          meetingCreator: data.creator,
+          meetingStartTime: data.active ? new Date() : null,
+          meetingRoom: data.roomName
+        }));
+        
+        // If meeting ended, close the meeting interface
+        if (!data.active && showMeeting) {
+          console.log('Meeting was ended by the creator. Closing interface...');
+          setShowMeeting(false);
+          
+          // Show a notification to the user
+          if (data.creator !== username) {
+            alert('The meeting has been ended by the host.');
+          }
+        }
+      });
+      
+      // Cleanup on unmount
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.emit('leaveProject', id);
+          socketRef.current.disconnect();
+        }
+      };
+    }
+  }, [hasAccess, id, showMeeting, username]);
+
+  // Fetch meeting status when project is loaded
+  useEffect(() => {
+    if (project) {
+      setMeetingActive(project.meetingActive || false);
+      setMeetingCreator(project.meetingCreator || null);
+    }
+  }, [project]);
+
   // Render loading state
   if (loading) {
     return (
@@ -1131,10 +1326,39 @@ export const ProjectDashboard = () => {
               <div className="section-header">
                 <h3>Virtual Meet</h3>
               </div>
-              <div className="empty-state">
-                <p>Virtual meeting functionality is not yet implemented.</p>
-                <button>Set up a meeting</button>
-              </div>
+              {meetingActive ? (
+                <div className="meeting-active">
+                  {meetingCreator === username ? (
+                    <>
+                      <p>You started a meeting. Share with your team!</p>
+                      <div className="meeting-buttons">
+                        <button className="primary-button" onClick={joinMeeting}>Enter Meeting Room</button>
+                        <button className="secondary-button" onClick={closeMeeting}>End Meeting</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>{meetingCreator} has started a meeting</p>
+                      <button className="primary-button" onClick={joinMeeting}>Join Meeting</button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="meeting-controls">
+                  {/* Show meeting controls to both owner and enrolled users */}
+                  {(checkAccessClientSide(project) || project?.enrolledUsers?.includes(localStorage.getItem('userId'))) && (
+                    <>
+                      <div className="meeting-actions">
+                        <button className="primary-button" onClick={createMeeting}>Create Meeting</button>
+                        <button className="secondary-button">Schedule Meeting</button>
+                      </div>
+                    </>
+                  )}
+                  <div className="empty-state">
+                    <p>No active meetings at the moment.</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1238,6 +1462,16 @@ export const ProjectDashboard = () => {
 
       {project && (
         <MessagePanel {...messagePanelProps} />
+      )}
+
+      {/* Jitsi Meet Component */}
+      {showMeeting && (
+        <JitsiMeetComponent
+          roomName={meetingRoom}
+          displayName={username}
+          onClose={closeMeeting}
+          isCreator={meetingCreator === username}
+        />
       )}
     </div>
   );

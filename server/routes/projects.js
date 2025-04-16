@@ -3,7 +3,7 @@ const router = express.Router();
 const Project = require('../models/Project');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'your_jwt_secret'; // Replace with your own secret
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; // Use env variable with fallback
 
 // Middleware to authenticate user
 const authenticate = (req, res, next) => {
@@ -11,11 +11,14 @@ const authenticate = (req, res, next) => {
     if (!token) return res.status(401).json({ message: 'Access denied' });
 
     try {
+        console.log('Authenticating with token:', token.substring(0, 15) + '...');
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log('Token decoded successfully, user ID:', decoded.userId);
         req.user = decoded;
         next();
     } catch (error) {
-        res.status(400).json({ message: 'Invalid token' });
+        console.error('Authentication error:', error.message);
+        res.status(400).json({ message: 'Invalid token', error: error.message });
     }
 };
 
@@ -985,6 +988,67 @@ router.get('/:id/users', authenticate, async (req, res) => {
         res.status(200).json(allUsers);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching project users', error });
+    }
+});
+
+// Update meeting status
+router.patch('/:id/meeting', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { active, creatorUsername, roomName } = req.body;
+    const userId = req.user.userId;
+
+    try {
+        console.log(`Meeting update request received: projectId=${id}, active=${active}, creator=${creatorUsername || 'null'}, roomName=${roomName || 'null'}`);
+        
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user has access to this project
+        const isOwner = project.userId.toString() === userId;
+        const isEnrolled = project.enrolledUsers.some(
+            enrolledUserId => enrolledUserId.toString() === userId
+        );
+
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ message: 'You do not have permission to manage meetings in this project' });
+        }
+
+        // Update meeting status
+        project.meetingActive = !!active; // Convert to boolean to handle undefined/null
+        
+        if (active) {
+            project.meetingCreator = creatorUsername || null;
+            project.meetingStartTime = new Date();
+            project.meetingRoom = roomName || null;
+            console.log(`Setting up meeting for project ${id}: creator=${project.meetingCreator}, room=${project.meetingRoom}`);
+        } else {
+            console.log(`Ending meeting for project ${id}`);
+            project.meetingCreator = null;
+            project.meetingStartTime = null;
+            project.meetingRoom = null;
+        }
+        
+        await project.save();
+        console.log(`Meeting status updated successfully for project ${id}`);
+        
+        // Broadcast meeting status change through socket.io
+        // This would happen in the actual implementation
+        
+        res.status(200).json({ 
+            meetingActive: project.meetingActive,
+            meetingCreator: project.meetingCreator,
+            meetingStartTime: project.meetingStartTime,
+            meetingRoom: project.meetingRoom
+        });
+    } catch (error) {
+        console.error(`Error updating meeting status for project ${id}:`, error);
+        res.status(500).json({ 
+            message: 'Error updating meeting status', 
+            error: error.message 
+        });
     }
 });
 

@@ -444,7 +444,7 @@ export const BrowseProjects = () => {
                 <div className="content-header">
                     <h1>{pageTitle}</h1>
                     <div className="header-actions">
-                        <div className="search-container" ref={searchRef}>
+                        <div className="search-container_b" ref={searchRef}>
                             <div className="search-input-container">
                                 <FontAwesomeIcon icon={faSearch} className="search-icon" />
                                 <input
@@ -490,12 +490,14 @@ export const BrowseProjects = () => {
                                 </div>
                             )}
                         </div>
-                        {selectedUser && (
-                            <button className="clear-filter-button" onClick={clearFilters}>
-                                Clear Filter
-                            </button>
-                        )}
-                        <button onClick={openModal} id="create-project-button">Create a Project</button>
+                        <div className="action-buttons">
+                            {selectedUser && (
+                                <button className="clear-filter-button" onClick={clearFilters}>
+                                    Clear Filter
+                                </button>
+                            )}
+                            <button onClick={openModal} id="create-project-button">Create a Project</button>
+                        </div>
                     </div>
                 </div>
                 <Modal

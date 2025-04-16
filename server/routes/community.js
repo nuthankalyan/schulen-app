@@ -378,4 +378,27 @@ router.get('/:id/diagnose-image/:index', authenticateToken, async (req, res) => 
     }
 });
 
+// Delete a discussion by ID
+router.delete('/:id', authenticateToken, async (req, res) => {
+    try {
+        const discussion = await Discussion.findById(req.params.id);
+        
+        if (!discussion) {
+            return res.status(404).json({ message: 'Discussion not found' });
+        }
+        
+        // Check if the user is the author
+        if (discussion.author.toString() !== req.user.userId) {
+            return res.status(403).json({ message: 'You can only delete your own posts' });
+        }
+        
+        await Discussion.findByIdAndDelete(req.params.id);
+        
+        res.json({ message: 'Discussion deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting discussion:', error);
+        res.status(500).json({ message: 'Error deleting discussion', error: error.message });
+    }
+});
+
 module.exports = router; 

@@ -104,8 +104,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    flex-wrap: wrap;
-    gap: 15px;
+    width: 100%;
     margin-top: 50px; /* Add margin-top to create space below the header */
 }
 
@@ -138,13 +137,15 @@
     border-radius: 10px;
     
     border: none;
-    width: fit-content;
+    width: auto;
+    min-width: 180px;
     box-shadow: 0 0 10px rgba(41, 44, 88, 0.3);
     transform: scale(1);
     transition: transform 0.2s ease, background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
 #create-project-button:hover{
-    width: fit-content;
+    width: auto;
+    min-width: 180px;
     background-color: rgb(41, 44, 88);
     color: white;
     transform: scale(1.05);
@@ -500,10 +501,10 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
-.search-container {
+.search-container_b {
+background-color: white !important;
     position: relative;
     width: 300px;
 }
@@ -511,7 +512,7 @@
 .search-input-container {
     display: flex;
     align-items: center;
-    background-color: white;
+    background-color: rgb(255, 255, 255);
     border: 1px solid rgba(41, 44, 88, 0.3);
     border-radius: 8px;
     padding: 8px 12px;
@@ -600,6 +601,7 @@
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .clear-filter-button:hover {
@@ -609,24 +611,64 @@
     box-shadow: 0 4px 8px rgba(41, 44, 88, 0.2);
 }
 
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 @media (max-width: 768px) {
     .content-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 15px;
     }
     
     .header-actions {
         width: 100%;
-        flex-direction: column;
-        align-items: flex-start;
+        justify-content: space-between;
     }
     
     .search-container {
-        width: 100%;
+        width: 60%;
+    }
+    
+    .action-buttons {
+        display: flex;
+        justify-content: flex-end;
+        width: 55%;
     }
     
     #create-project-button {
+        width: fit-content;
+        white-space: nowrap;
+        text-align: center;
+        padding: 10px 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .search-container, 
+    .action-buttons {
         width: 100%;
-        margin-top: 10px;
+    }
+    
+    .action-buttons {
+        justify-content: space-between;
+    }
+    
+    #create-project-button {
+        flex: 1;
+        width: fit-content;
+    }
+    
+    .clear-filter-button {
+        flex: 0.7;
     }
 }

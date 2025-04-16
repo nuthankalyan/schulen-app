@@ -142,6 +142,32 @@ io.on('connection', (socket) => {
         }
     });
     
+    // Handle meeting status updates
+    socket.on('meetingStatusChanged', (data) => {
+        try {
+            const { projectId, active, creator, roomName } = data;
+            
+            if (!projectId) {
+                console.error('Missing projectId in meetingStatusChanged event');
+                return;
+            }
+            
+            // Validate the active status is a boolean
+            const meetingActive = !!active;
+            
+            // Broadcast meeting status change to all users in the project room
+            socket.to(projectId).emit('meetingStatusChanged', {
+                active: meetingActive,
+                creator: meetingActive ? creator : null,
+                roomName: meetingActive ? roomName : null
+            });
+            
+            console.log(`Meeting status changed in project ${projectId}: active=${meetingActive}, creator=${creator || 'none'}, room=${roomName || 'none'}`);
+        } catch (error) {
+            console.error('Error handling meetingStatusChanged event:', error);
+        }
+    });
+    
     // Handle disconnections
     socket.on('disconnect', () => {
         console.log('Client disconnected');

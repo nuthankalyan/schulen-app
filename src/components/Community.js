@@ -11,7 +11,8 @@ import {
   faSignOutAlt,
   faSearch,
   faImage,
-  faTimesCircle
+  faTimesCircle,
+  faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
@@ -155,9 +156,21 @@ const MemoizedImageWithFallback = memo(({ src, discussionId, imageIndex, isReply
     );
 });
 
-const Discussion = ({ discussion, handleDiscussionClick }) => {
+const Discussion = ({ discussion, handleDiscussionClick, currentUserId, onDeletePost }) => {
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
     const [showImageLoadError, setShowImageLoadError] = useState(false);
+    
+    // Check if the current user is the author of the post
+    const isOwnPost = discussion.author && 
+        (discussion.author.userId === currentUserId || 
+         discussion.author._id === currentUserId || 
+         discussion.author === currentUserId);
+    
+    // Stop propagation to prevent navigation when clicking delete button
+    const handleDeleteClick = (e) => {
+        e.stopPropagation();
+        onDeletePost(discussion._id);
+    };
     
     // Use useMemo to prevent re-renders causing continuous image loading
     const renderedContent = React.useMemo(() => {
@@ -242,6 +255,16 @@ const Discussion = ({ discussion, handleDiscussionClick }) => {
     return (
         <div className="discussion-card" onClick={() => handleDiscussionClick(discussion._id)}>
             <h3>{discussion.title}</h3>
+            
+            {isOwnPost && (
+                <button 
+                    className="delete-post-button" 
+                    onClick={handleDeleteClick}
+                    aria-label="Delete post"
+                >
+                    <FontAwesomeIcon icon={faTrash} className="delete-post-icon" />
+                </button>
+            )}
             
             <div className="discussion-meta">
                 <span className="discussion-author">
@@ -390,6 +413,10 @@ const Community = () => {
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
     
     const textareaRef = useRef(null);
+    
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [postToDelete, setPostToDelete] = useState(null);
+    const currentUserId = localStorage.getItem('userId');
     
     useEffect(() => {
         fetchDiscussions();
@@ -665,6 +692,47 @@ const Community = () => {
         navigate(`/main/community/${id}`);
     };
 
+    const handleDeleteConfirmation = (postId) => {
+        setPostToDelete(postId);
+        setShowDeleteConfirmation(true);
+    };
+    
+    const cancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setPostToDelete(null);
+    };
+    
+    const confirmDelete = async () => {
+        if (!postToDelete) return;
+        
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+            
+            await axios.delete(`${API_URL}/community/${postToDelete}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            // Remove the deleted post from the state
+            setDiscussions(prevDiscussions => 
+                prevDiscussions.filter(discussion => discussion._id !== postToDelete)
+            );
+            
+            // Hide confirmation modal
+            setShowDeleteConfirmation(false);
+            setPostToDelete(null);
+            
+        } catch (err) {
+            console.error('Error deleting post:', err);
+            setError('Failed to delete post. Please try again later.');
+        }
+    };
+
     return (
         <div className="main-container">
             <Header />
@@ -718,7 +786,7 @@ const Community = () => {
                         <FontAwesomeIcon icon={faSearch} className="search-icon" />
                         <input 
                             type="text" 
-                            placeholder="Search" 
+                            placeholder="Search for tags" 
                             value={searchQuery}
                             onChange={handleSearch}
                         />
@@ -757,6 +825,8 @@ const Community = () => {
                                 key={discussion._id} 
                                 discussion={discussion} 
                                 handleDiscussionClick={handleDiscussionClick}
+                                currentUserId={currentUserId}
+                                onDeletePost={handleDeleteConfirmation}
                             />
                         ))
                     )}
@@ -861,6 +931,24 @@ const Community = () => {
                                 <button type="submit" className="submit-btn">Submit</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            
+            {/* Delete confirmation modal */}
+            {showDeleteConfirmation && (
+                <div className="delete-confirmation-modal">
+                    <div className="delete-confirmation-content">
+                        <h3>Delete Post</h3>
+                        <p>Are you sure you want to delete this post? This action cannot be undone.</p>
+                        <div className="delete-confirmation-actions">
+                            <button className="cancel-button" onClick={cancelDelete}>
+                                Cancel
+                            </button>
+                            <button className="confirm-delete-button" onClick={confirmDelete}>
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
