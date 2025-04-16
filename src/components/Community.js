@@ -157,7 +157,7 @@ const MemoizedImageWithFallback = memo(({ src, discussionId, imageIndex, isReply
 });
 
 const Discussion = ({ discussion, handleDiscussionClick, currentUserId, onDeletePost }) => {
-    const API_URL = process.env.REACT_APP_DIRECT_API_URL || 'http://localhost:5000';
+    const API_URL = config.API_BASE_URL || 'http://localhost:5000';
     const [showImageLoadError, setShowImageLoadError] = useState(false);
     
     // Check if the current user is the author of the post
