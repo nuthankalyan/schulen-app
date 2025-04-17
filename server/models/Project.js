@@ -34,7 +34,7 @@ const ProjectSchema = new mongoose.Schema({
     maxTeamSize: { type: Number, default: 4 },
     viewCount: { type: Number, default: 0 },
     activities: [{
-        type: { type: String, enum: ['status_change', 'enrollment_accepted', 'project_created', 'enrollment_request', 'task_created', 'task_updated', 'task_completed'] },
+        type: { type: String, enum: ['status_change', 'enrollment_accepted', 'project_created', 'enrollment_request', 'task_created', 'task_updated', 'task_completed', 'whiteboard_update'] },
         timestamp: { type: Date, default: Date.now },
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         username: { type: String },
@@ -54,6 +54,11 @@ const ProjectSchema = new mongoose.Schema({
     meetingCreator: { type: String }, // Username of the meeting creator
     meetingStartTime: { type: Date },
     meetingRoom: { type: String }, // Jitsi meeting room ID
+    // Whiteboard data
+    whiteboardData: { 
+        type: mongoose.Schema.Types.Mixed, // Store Excalidraw scene data as a mixed type
+        default: null
+    },
     // Additional features
     resources: [{
         title: { type: String },
