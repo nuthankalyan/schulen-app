@@ -173,6 +173,16 @@ const MessagePanel = ({ isOpen, onClose, projectId, currentUsername, projectTitl
     if (!newMessage.trim() || !projectId || !currentUsername) return;
     
     try {
+      // Create message object
+      const messageData = {
+        sender: currentUsername,
+        text: newMessage,
+        timestamp: new Date()
+      };
+      
+      // Add message to local state immediately for responsive UI
+      setMessages(prevMessages => [messageData, ...prevMessages]);
+      
       // Save message to database
       const token = localStorage.getItem('token');
       const response = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}/messages`, {
@@ -193,11 +203,12 @@ const MessagePanel = ({ isOpen, onClose, projectId, currentUsername, projectTitl
       // Clear input field
       setNewMessage('');
       setIsTyping(false);
-      
-      // No need to emit socket event here as the server will handle that
-      // after saving to database
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove the optimistically added message if saving fails
+      setMessages(prevMessages => prevMessages.filter(msg => 
+        !(msg.sender === currentUsername && msg.text === newMessage)
+      ));
     }
   };
   

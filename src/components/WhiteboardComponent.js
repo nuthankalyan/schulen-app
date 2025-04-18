@@ -349,12 +349,170 @@ const WhiteboardComponent = ({ projectId, username }) => {
         <button 
           className="save-whiteboard-button"
           onClick={saveCurrentScene}
+          title="Save whiteboard"
         >
-          Save
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/>
+          </svg>
+        </button>
+        <button 
+          className="copy-whiteboard-button"
+          onClick={copyToClipboard}
+          title="Copy to Clipboard"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+          </svg>
+        </button>
+        <button 
+          className="export-whiteboard-button"
+          onClick={exportToJPG}
+          title="Export to JPG"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M.002 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-12a2 2 0 0 1-2-2V3zm1 9v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12zm5-6.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"/>
+          </svg>
         </button>
         {saveStatus && <div className="save-status">{saveStatus}</div>}
       </div>
     );
+  };
+
+  // Function to copy whiteboard content to clipboard
+  const copyToClipboard = async () => {
+    if (!excalidrawAPI) {
+      setSaveStatus('Cannot copy: API not initialized');
+      return;
+    }
+
+    try {
+      setSaveStatus('Copying...');
+      
+      // Get the original canvas element from Excalidraw
+      const excalidrawElement = document.querySelector('.excalidraw');
+      if (!excalidrawElement) {
+        throw new Error('Excalidraw element not found');
+      }
+      
+      const canvas = excalidrawElement.querySelector('canvas');
+      if (!canvas) {
+        throw new Error('Canvas element not found');
+      }
+      
+      // Create a new canvas to ensure we have a clean copy
+      const tempCanvas = document.createElement('canvas');
+      const ctx = tempCanvas.getContext('2d');
+      
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      
+      // Draw the existing canvas content onto our temp canvas
+      ctx.drawImage(canvas, 0, 0);
+      
+      try {
+        // Try using the clipboard API to copy the image
+        tempCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            throw new Error('Failed to create image blob');
+          }
+          
+          try {
+            // For browsers that support clipboard API with ClipboardItem
+            if (navigator.clipboard && navigator.clipboard.write) {
+              const item = new ClipboardItem({ 'image/png': blob });
+              await navigator.clipboard.write([item]);
+              setSaveStatus('Copied to clipboard');
+              setTimeout(() => setSaveStatus(''), 2000);
+            } else {
+              throw new Error('Clipboard API not supported');
+            }
+          } catch (clipboardError) {
+            console.error('Clipboard API error:', clipboardError);
+            
+            // Fallback to creating a download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `whiteboard-${projectId}.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            setSaveStatus('Image downloaded (clipboard not supported)');
+            setTimeout(() => setSaveStatus(''), 3000);
+          }
+        }, 'image/png', 1.0);
+      } catch (error) {
+        console.error('Error creating blob:', error);
+        setSaveStatus('Copy failed: ' + error.message);
+        setTimeout(() => setSaveStatus(''), 2000);
+      }
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      setSaveStatus('Copy failed: ' + error.message);
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
+  };
+
+  // Function to export the whiteboard as JPG
+  const exportToJPG = async () => {
+    if (!excalidrawAPI) {
+      setSaveStatus('Cannot export: API not initialized');
+      return;
+    }
+
+    try {
+      setSaveStatus('Exporting to JPG...');
+      
+      // Get the original canvas element from Excalidraw
+      const excalidrawElement = document.querySelector('.excalidraw');
+      if (!excalidrawElement) {
+        throw new Error('Excalidraw element not found');
+      }
+      
+      const canvas = excalidrawElement.querySelector('canvas');
+      if (!canvas) {
+        throw new Error('Canvas element not found');
+      }
+      
+      // Create a temporary canvas with better resolution
+      const tempCanvas = document.createElement('canvas');
+      const ctx = tempCanvas.getContext('2d');
+      
+      // Set bigger dimensions for better quality
+      const scale = 2; // Scale factor for better resolution
+      tempCanvas.width = canvas.width * scale;
+      tempCanvas.height = canvas.height * scale;
+      
+      // Fill with white background for JPG
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      
+      // Scale and draw the original canvas content
+      ctx.scale(scale, scale);
+      ctx.drawImage(canvas, 0, 0);
+      
+      // Convert to JPG data URL
+      const dataURL = tempCanvas.toDataURL('image/jpeg', 0.95);
+      
+      // Create download link
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.download = `whiteboard-${projectId}-${timestamp}.jpg`;
+      link.href = dataURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setSaveStatus('Exported to JPG');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } catch (error) {
+      console.error('Error exporting to JPG:', error);
+      setSaveStatus('Export failed: ' + error.message);
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
   };
 
   // Generate a color from a string (username)

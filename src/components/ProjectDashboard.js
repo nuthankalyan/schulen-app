@@ -1173,7 +1173,7 @@ export const ProjectDashboard = () => {
     <div className="project-dashboard">
       {/* Dashboard Header */}
       <div className="dashboard-header">
-        <button className="back-button" onClick={handleBackToProjects}>
+        <button className="dashboard-back-button" onClick={handleBackToProjects}>
           <FontAwesomeIcon icon={faArrowLeft} /> Back to Projects
         </button>
         <h1>{project?.title || 'Project Dashboard'}</h1>
