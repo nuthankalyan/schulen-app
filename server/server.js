@@ -99,6 +99,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 // Socket.io connection handling
 const projectRooms = {};
+const whiteboardRooms = {}; // Store whiteboard collaborators
 
 io.on('connection', (socket) => {
     console.log('New client connected');
@@ -113,6 +114,80 @@ io.on('connection', (socket) => {
             projectRooms[projectId] = {
                 users: new Set()
             };
+        }
+    });
+    
+    // Join a whiteboard room
+    socket.on('joinWhiteboard', (data) => {
+        const { projectId, username } = data;
+        
+        if (!projectId || !username) {
+            console.error('Missing projectId or username in joinWhiteboard event');
+            return;
+        }
+        
+        // Create a specific room ID for this project's whiteboard
+        const roomId = `whiteboard-${projectId}`;
+        socket.join(roomId);
+        console.log(`User ${username} joined whiteboard room: ${roomId}`);
+        
+        // Initialize whiteboard room if not exists
+        if (!whiteboardRooms[roomId]) {
+            whiteboardRooms[roomId] = {
+                collaborators: new Set()
+            };
+        }
+        
+        // Add user to collaborators
+        whiteboardRooms[roomId].collaborators.add(username);
+        
+        // Broadcast updated collaborator list to everyone in the room
+        io.to(roomId).emit('whiteboardCollaborators', {
+            collaborators: Array.from(whiteboardRooms[roomId].collaborators)
+        });
+    });
+    
+    // Handle whiteboard updates
+    socket.on('whiteboardUpdate', (data) => {
+        const { projectId, sender, elements } = data;
+        
+        if (!projectId || !sender) {
+            console.error('Missing projectId or sender in whiteboardUpdate event');
+            return;
+        }
+        
+        const roomId = `whiteboard-${projectId}`;
+        
+        // Broadcast the update to all clients in the room except the sender
+        socket.to(roomId).emit('whiteboardUpdate', {
+            sender,
+            elements
+        });
+    });
+    
+    // Leave whiteboard room
+    socket.on('leaveWhiteboard', (data) => {
+        const { projectId, username } = data;
+        
+        if (!projectId || !username) return;
+        
+        const roomId = `whiteboard-${projectId}`;
+        socket.leave(roomId);
+        console.log(`User ${username} left whiteboard room: ${roomId}`);
+        
+        // Remove user from collaborators
+        if (whiteboardRooms[roomId] && whiteboardRooms[roomId].collaborators) {
+            whiteboardRooms[roomId].collaborators.delete(username);
+            
+            // Broadcast updated collaborator list
+            io.to(roomId).emit('whiteboardCollaborators', {
+                collaborators: Array.from(whiteboardRooms[roomId].collaborators)
+            });
+            
+            // Clean up if no more collaborators
+            if (whiteboardRooms[roomId].collaborators.size === 0) {
+                delete whiteboardRooms[roomId];
+            }
         }
     });
     

@@ -1052,4 +1052,95 @@ router.patch('/:id/meeting', authenticate, async (req, res) => {
     }
 });
 
+// Get whiteboard data for a project
+router.get('/:id/whiteboard', authenticate, async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Check if user is owner or enrolled in project
+        const isOwner = project.userId.toString() === req.user.userId;
+        const isEnrolled = project.enrolledUsers.some(userId => 
+            userId.toString() === req.user.userId
+        );
+        
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ 
+                message: 'Access denied: You must be the project owner or an enrolled member' 
+            });
+        }
+        
+        // Return whiteboard data or empty object if no data
+        res.json({ 
+            whiteboardData: project.whiteboardData || null
+        });
+    } catch (error) {
+        console.error('Error fetching whiteboard data:', error);
+        res.status(500).json({ message: 'Error fetching whiteboard data', error: error.message });
+    }
+});
+
+// Save whiteboard data for a project
+router.post('/:id/whiteboard', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { whiteboardData } = req.body;
+    
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Check if user is owner or enrolled in project
+        const isOwner = project.userId.toString() === req.user.userId;
+        const isEnrolled = project.enrolledUsers.some(userId => 
+            userId.toString() === req.user.userId
+        );
+        
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ 
+                message: 'Access denied: You must be the project owner or an enrolled member' 
+            });
+        }
+        
+        console.log('Received whiteboard data:', typeof whiteboardData);
+        
+        // Make sure whiteboardData is not undefined or null
+        if (whiteboardData === undefined || whiteboardData === null) {
+            return res.status(400).json({ message: 'No whiteboard data provided' });
+        }
+        
+        // Get username for activity log
+        const user = await User.findById(req.user.userId);
+        const username = user ? user.username : 'Unknown User';
+        
+        // Add activity for whiteboard update
+        project.activities.push({
+            type: 'whiteboard_update',
+            userId: req.user.userId,
+            username: username,
+            details: 'Updated the project whiteboard',
+            timestamp: new Date()
+        });
+        
+        // Update whiteboard data
+        project.whiteboardData = whiteboardData;
+        await project.save();
+        
+        res.status(200).json({ 
+            message: 'Whiteboard data saved successfully',
+            savedAt: new Date()
+        });
+    } catch (error) {
+        console.error('Error saving whiteboard data:', error);
+        res.status(500).json({ message: 'Error saving whiteboard data', error: error.message });
+    }
+});
+
 module.exports = router;

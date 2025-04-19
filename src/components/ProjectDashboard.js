@@ -4,6 +4,7 @@ import './ProjectDashboard.css';
 import config from '../config';
 import { FontAwesomeIcon } from '../fontawesome';
 import MessagePanel from './MessagePanel';
+import WhiteboardComponent from './WhiteboardComponent';
 import { 
   faUsers, 
   faTasks,
@@ -1172,7 +1173,7 @@ export const ProjectDashboard = () => {
     <div className="project-dashboard">
       {/* Dashboard Header */}
       <div className="dashboard-header">
-        <button className="back-button" onClick={handleBackToProjects}>
+        <button className="dashboard-back-button" onClick={handleBackToProjects}>
           <FontAwesomeIcon icon={faArrowLeft} /> Back to Projects
         </button>
         <h1>{project?.title || 'Project Dashboard'}</h1>
@@ -1367,10 +1368,10 @@ export const ProjectDashboard = () => {
               <div className="section-header">
                 <h3>White Board</h3>
               </div>
-              <div className="empty-state">
-                <p>Whiteboard functionality is not yet implemented.</p>
-                <button>Start collaborating</button>
-              </div>
+              <WhiteboardComponent 
+                projectId={id} 
+                username={username || localStorage.getItem('username')} 
+              />
             </div>
           )}
 

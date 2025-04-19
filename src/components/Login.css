@@ -211,6 +211,7 @@
 .login-button {
     width: 75%;
     padding: 0.85rem;
+    height: 45px;
     background: rgb(41, 44, 88);
     color: white;
     border: none;
@@ -218,7 +219,7 @@
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
     position: relative;
     overflow: hidden;
     margin-bottom: 1rem;
@@ -226,6 +227,7 @@
     justify-content: center;
     align-items: center;
     gap: 8px;
+    box-sizing: border-box;
 }
 
 .login-button:hover {
@@ -235,16 +237,28 @@
 
 .login-button:active {
     transform: translateY(0);
+    transition: all 0.1s ease;
 }
 
 .login-button.loading {
     background: rgba(41, 44, 88, 0.8);
     cursor: wait;
     font-size: 0.9rem;
+    height: 45px;
+    width: 85%;
+    box-shadow: 0 4px 12px rgba(41, 44, 88, 0.3);
 }
 
 .login-button.success {
-    background: #4caf50;
+    background: rgba(41, 44, 88, 0.8);
+    height: 45px;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(41, 44, 88, 0.3);
+    transform: translateY(-3px);
+}
+
+.loading-text{
+    color: white;
 }
 
 .loader {

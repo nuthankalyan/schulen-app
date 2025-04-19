@@ -34,27 +34,30 @@ export const Login = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Success animation
+                // Store credentials first
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', username);
+                localStorage.setItem('userId', data.userId);
+                
+                // Success animation - keep loading state active
+                // and add success class for expansion
                 const loginButton = e.target.querySelector('.login-button');
                 loginButton.classList.add('success');
                 
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('username', username);
-                
-                // Delay navigation to show success animation
+                // Delay navigation to show the complete animation
                 setTimeout(() => {
                     navigate('/main/myprojects');
-                }, 1000);
+                }, 1500);
             } else {
+                setIsLoading(false);
                 setFormError(data.message || 'Login failed. Please check your credentials.');
                 const form = e.target;
                 form.classList.add('shake');
                 setTimeout(() => form.classList.remove('shake'), 500);
             }
         } catch (error) {
-            setFormError('Network error. Please try again later.');
-        } finally {
             setIsLoading(false);
+            setFormError('Network error. Please try again later.');
         }
     };
 
@@ -143,10 +146,10 @@ export const Login = () => {
                                     {isLoading ? (
                                         <>
                                             <span className="loader"></span>
-                                            Signing in...
+                                            <span className="loading-text">Signing in...</span>
                                         </>
                                     ) : (
-                                        'Sign In'
+                                        <span>Sign In</span>
                                     )}
                                 </button>
                                 
