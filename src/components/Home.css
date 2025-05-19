@@ -34,7 +34,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 5%;
+  padding: 0.5rem 5%;
   position: fixed;
   top: 0;
   left: 0;
@@ -51,6 +51,15 @@ body {
   font-weight: 700;
   color: white;
   transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  height: 60px;
+  width: auto;
+  transition: transform 0.3s ease;
+  object-fit: contain;
 }
 
 .logo:hover {
@@ -614,6 +623,15 @@ nav ul li a:hover::after {
   font-size: 1.8rem;
   font-weight: 700;
   color: rgb(41, 44, 88);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.footer-logo img {
+  height: 45px;
+  width: auto;
+  object-fit: contain;
 }
 
 .footer-links {
@@ -684,6 +702,10 @@ nav ul li a:hover::after {
     padding: 1rem 5%;
   }
   
+  .logo img {
+    height: 30px;
+  }
+  
   nav ul li {
     margin-left: 1rem;
   }
@@ -697,26 +719,38 @@ nav ul li a:hover::after {
   }
   
   .testimonial-cards {
-    flex-direction: column;
-    align-items: center;
+    padding-bottom: 1.5rem;
   }
   
   .testimonial-card {
-    min-width: 100%;
+    min-width: 260px;
+  }
+  
+  .footer-logo img {
+    height: 30px;
   }
 }
 
 @media (max-width: 480px) {
   .hero-buttons {
     flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .logo img {
+    height: 25px;
   }
   
   .login-btn, .signup-btn {
     padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
   
   .section-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
+  }
+  
+  .footer-logo img {
+    height: 25px;
   }
 }

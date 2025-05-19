@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import './Home.css';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '../fontawesome';
+import logoImage from '../assests/schulen_logo.png';
 import { 
   faLaptopCode, 
   faUserGraduate, 
@@ -43,7 +44,9 @@ export const Home = () => {
     return (
         <div className="home-container">
             <header className="header">
-                <div className="logo">Schulen</div>
+                <div className="logo">
+                    <img src={logoImage} alt="Schulen Logo" />
+                </div>
                 <nav>
                     <ul>
                         <li><a href="#features">Features</a></li>
@@ -217,7 +220,9 @@ export const Home = () => {
 
             <footer className="footer">
                 <div className="footer-content">
-                    <div className="footer-logo">Schulen</div>
+                    <div className="footer-logo">
+                        <img src={logoImage} alt="Schulen Logo" />
+                    </div>
                     <div className="footer-links">
                         <div className="footer-column">
                             <h3>Platform</h3>
