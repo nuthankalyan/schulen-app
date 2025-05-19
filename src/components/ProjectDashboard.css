@@ -895,11 +895,11 @@
 }
 
 .image-preview {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px;
 }
 
 .image-preview img {
@@ -1981,4 +1981,19 @@
   color: #555;
   text-align: right;
   margin: 0;
+}
+
+/* Loading overlay for image preview */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(245, 247, 250, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
 } 
