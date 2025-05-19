@@ -24,7 +24,26 @@ import {
   faVideo,
   faChalkboard,
   faBook,
-  faCode
+  faCode,
+  faChevronRight,
+  faChevronLeft,
+  faLink,
+  faFile,
+  faFolder,
+  faDownload,
+  faEye,
+  faFolderOpen,
+  faTimes,
+  faFileWord,
+  faFilePowerpoint,
+  faFileExcel,
+  faExternalLinkAlt,
+  faFilePdf,
+  faFileAudio,
+  faFileVideo,
+  faHome,
+  faArrowUp,
+  faChevronDown
 } from '@fortawesome/free-solid-svg-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -145,6 +164,1661 @@ const KanbanColumn = ({ title, status, tasks, onEditTask, onDeleteTask, onDragEn
   );
 };
 
+// Resource Upload Modal with backend integration
+const ResourceUploadModal = ({ isOpen, onClose, onUpload, projectId }) => {
+  const [uploadType, setUploadType] = useState('file'); // 'file', 'folder', or 'link'
+  const [resourceName, setResourceName] = useState('');
+  const [resourceUrl, setResourceUrl] = useState('');
+  const [resourceDescription, setResourceDescription] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
+  const folderInputRef = useRef(null);
+  
+  const handleUpload = async () => {
+    if (isUploading) return;
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Authentication token missing. Please log in again.');
+        setIsUploading(false);
+        return;
+      }
+      
+      if (uploadType === 'link' && !resourceUrl) {
+        alert('Please enter a valid URL');
+        setIsUploading(false);
+        return;
+      }
+      
+      if (uploadType === 'file' && !selectedFile) {
+        alert('Please select a file to upload');
+        setIsUploading(false);
+        return;
+      }
+      
+      if (uploadType === 'folder' && selectedFiles.length === 0) {
+        alert('Please select a folder with files to upload');
+        setIsUploading(false);
+        return;
+      }
+      
+      let result = null;
+      
+      // Upload based on type
+      if (uploadType === 'link') {
+        // Create link resource
+        const response = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}/resources/link`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify({
+            name: resourceName,
+            description: resourceDescription,
+            url: resourceUrl
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to create link: ${response.status} ${response.statusText}`);
+        }
+        
+        result = await response.json();
+        
+      } else if (uploadType === 'file') {
+        // Upload individual file
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('name', resourceName || selectedFile.name);
+        formData.append('description', resourceDescription);
+        
+        const xhr = new XMLHttpRequest();
+        
+        // Add progress tracking
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+          }
+        });
+        
+        // Create a promise to handle the XHR request
+        const uploadPromise = new Promise((resolve, reject) => {
+          xhr.open('POST', `${config.API_BASE_URL}/browseprojects/${projectId}/resources/file`);
+          xhr.setRequestHeader('Authorization', token);
+          
+          xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject(new Error(`HTTP Error: ${xhr.status}`));
+            }
+          };
+          
+          xhr.onerror = function() {
+            reject(new Error('Network error occurred'));
+          };
+          
+          xhr.send(formData);
+        });
+        
+        result = await uploadPromise;
+        
+      } else if (uploadType === 'folder') {
+        // Create folder first
+        const folderName = resourceName || (selectedFiles[0] ? selectedFiles[0].webkitRelativePath.split('/')[0] : 'Uploaded Folder');
+        
+        const folderResponse = await fetch(`${config.API_BASE_URL}/browseprojects/${projectId}/resources/folder`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify({
+            name: folderName,
+            description: resourceDescription
+          })
+        });
+        
+        if (!folderResponse.ok) {
+          throw new Error(`Failed to create folder: ${folderResponse.status} ${folderResponse.statusText}`);
+        }
+        
+        const folderResult = await folderResponse.json();
+        const folderId = folderResult._id;
+        
+        // Upload files to the folder
+        let uploadedCount = 0;
+        
+        for (const file of selectedFiles) {
+          // Get path relative to the root folder
+          const pathParts = file.webkitRelativePath.split('/');
+          pathParts.shift(); // Remove the root folder name
+          const relativePath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
+          
+          const fileFormData = new FormData();
+          fileFormData.append('file', file);
+          fileFormData.append('folderPath', relativePath); // Changed from 'path' to 'folderPath' to match server
+          
+          await fetch(`${config.API_BASE_URL}/resources/${folderId}/files`, {
+            method: 'POST',
+            headers: {
+              'Authorization': token
+            },
+            body: fileFormData
+          });
+          
+          uploadedCount++;
+          setUploadProgress(Math.round((uploadedCount / selectedFiles.length) * 100));
+        }
+        
+        // Reload the folder to get complete structure
+        const refreshFolderResponse = await fetch(`${config.API_BASE_URL}/resources/${folderId}`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!refreshFolderResponse.ok) {
+          throw new Error(`Failed to refresh folder: ${refreshFolderResponse.status}`);
+        }
+        
+        result = await refreshFolderResponse.json();
+      }
+      
+      // Send the result to parent component
+      if (result) {
+        onUpload(result);
+      }
+      
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error('Error uploading resource:', error);
+      alert(`Failed to upload resource: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+  
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+  
+  const handleFolderSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFiles(Array.from(e.target.files));
+    }
+  };
+  
+  const resetForm = () => {
+    setResourceName('');
+    setResourceUrl('');
+    setResourceDescription('');
+    setSelectedFile(null);
+    setSelectedFiles([]);
+    setUploadType('file');
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (folderInputRef.current) {
+      folderInputRef.current.value = '';
+    }
+  };
+  
+  const handleCancel = () => {
+    resetForm();
+    onClose();
+  };
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="modal-overlay">
+      <div className="resource-modal">
+        <div className="resource-modal-header">
+          <h3>Add Resource</h3>
+          <button className="close-button" onClick={handleCancel}>
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+        
+        <div className="resource-type-selector">
+          <button 
+            className={`resource-type-btn ${uploadType === 'file' ? 'active' : ''}`}
+            onClick={() => setUploadType('file')}
+          >
+            <FontAwesomeIcon icon={faFile} /> File
+          </button>
+          <button 
+            className={`resource-type-btn ${uploadType === 'folder' ? 'active' : ''}`}
+            onClick={() => setUploadType('folder')}
+          >
+            <FontAwesomeIcon icon={faFolder} /> Folder
+          </button>
+          <button 
+            className={`resource-type-btn ${uploadType === 'link' ? 'active' : ''}`}
+            onClick={() => setUploadType('link')}
+          >
+            <FontAwesomeIcon icon={faLink} /> Link
+          </button>
+        </div>
+        
+        <div className="form-group">
+          <label>{uploadType === 'link' ? 'Resource Name' : 'Name (optional)'}</label>
+          <input 
+            type="text" 
+            value={resourceName} 
+            onChange={(e) => setResourceName(e.target.value)}
+            placeholder={uploadType === 'link' ? 'Enter resource name' : 'Default: file/folder name'}
+          />
+        </div>
+        
+        {uploadType === 'link' && (
+          <div className="form-group">
+            <label>URL</label>
+            <input 
+              type="url" 
+              value={resourceUrl} 
+              onChange={(e) => setResourceUrl(e.target.value)}
+              placeholder="https://example.com"
+              required
+            />
+          </div>
+        )}
+        
+        {uploadType === 'file' && (
+          <div className="form-group">
+            <label>Select File</label>
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="file-input"
+            />
+            {selectedFile && (
+              <div className="selected-file-info">
+                <p>{selectedFile.name}</p>
+                <p>{Math.round(selectedFile.size / 1024)} KB</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {uploadType === 'folder' && (
+          <div className="form-group">
+            <label>Select Folder</label>
+            <input 
+              type="file" 
+              ref={folderInputRef}
+              onChange={handleFolderSelect}
+              className="file-input"
+              webkitdirectory="true"
+              directory="true"
+              mozdirectory="true"
+              multiple
+            />
+            {selectedFiles.length > 0 && (
+              <div className="selected-file-info">
+                <p>Folder: {selectedFiles[0].webkitRelativePath.split('/')[0]}</p>
+                <p>{selectedFiles.length} files selected</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        <div className="form-group">
+          <label>Description (optional)</label>
+          <textarea 
+            value={resourceDescription} 
+            onChange={(e) => setResourceDescription(e.target.value)}
+            placeholder="Enter a brief description"
+          />
+        </div>
+        
+        {isUploading && (
+          <div className="upload-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-bar-fill" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <p className="progress-text">{uploadProgress}% Uploaded</p>
+          </div>
+        )}
+        
+        <div className="modal-actions">
+          <button className="cancel-button" onClick={handleCancel}>
+            Cancel
+          </button>
+          <button 
+            className="save-button" 
+            onClick={handleUpload}
+            disabled={isUploading || 
+              (uploadType === 'link' && !resourceUrl) || 
+              (uploadType === 'file' && !selectedFile) ||
+              (uploadType === 'folder' && selectedFiles.length === 0)}
+          >
+            {isUploading ? 'Uploading...' : 'Upload Resource'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Updated ResourceFileTree component with folder browsing and file management
+const ResourceFileTree = ({ resources, onSelectResource, selectedResource, currentPath = '', onDeleteResource, onRenameResource }) => {
+  const [expandedFolders, setExpandedFolders] = useState({});
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [resourceToRename, setResourceToRename] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
+  const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [currentPathState, setCurrentPathState] = useState(currentPath);
+
+  // Function to toggle folder expansion
+  const toggleFolderExpansion = (e, folderId) => {
+    e.stopPropagation();
+    setExpandedFolders(prev => ({
+      ...prev,
+      [folderId]: !prev[folderId]
+    }));
+  };
+
+  // Function to get folders and files at the current path
+  const getResourcesAtCurrentPath = () => {
+    if (!currentPathState) {
+      // At root level, return all top-level resources
+      return resources;
+    }
+
+    // Find the folder resource that contains the current path
+    const pathParts = currentPathState.split('/');
+    const rootFolderName = pathParts[0];
+    const folderResource = resources.find(r => r.type === 'folder' && r.name === rootFolderName);
+    
+    if (!folderResource || !folderResource.files) {
+      return [];
+    }
+
+    // If we're inside a subfolder
+    if (pathParts.length > 1) {
+      const subfolder = pathParts.slice(1).join('/');
+      
+      // Get immediate children (files and folders) of the current path
+      const filesAndFolders = [];
+      
+      // First, identify all unique immediate subfolders
+      const subfolders = new Set();
+      folderResource.files.forEach(file => {
+        if (file.path && file.path.startsWith(subfolder + '/')) {
+          const remaining = file.path.substring(subfolder.length + 1);
+          const parts = remaining.split('/');
+          if (parts.length > 0 && parts[0]) {
+            subfolders.add(parts[0]);
+          }
+        }
+      });
+      
+      // Add subfolders as folder items
+      subfolders.forEach(subfolder => {
+        filesAndFolders.push({
+          id: `folder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: subfolder,
+          type: 'folder',
+          isSubfolder: true,
+          parentPath: currentPathState
+        });
+      });
+      
+      // Add files that are direct children of this path
+      folderResource.files.forEach(file => {
+        if (file.path === subfolder || 
+            (file.path && file.path.startsWith(subfolder + '/') && 
+             !file.path.substring(subfolder.length + 1).includes('/'))) {
+          filesAndFolders.push({
+            ...file,
+            parentFolder: rootFolderName
+          });
+        }
+      });
+      
+      return filesAndFolders;
+    } 
+    
+    // We're at the root of a folder
+    const filesAndFolders = [];
+    
+    // First, identify all unique immediate subfolders
+    const subfolders = new Set();
+    folderResource.files.forEach(file => {
+      if (file.path && file.path.includes('/')) {
+        const parts = file.path.split('/');
+        if (parts.length > 0 && parts[0]) {
+          subfolders.add(parts[0]);
+        }
+      }
+    });
+    
+    // Add subfolders as folder items
+    subfolders.forEach(subfolder => {
+      filesAndFolders.push({
+        id: `folder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: subfolder,
+        type: 'folder',
+        isSubfolder: true,
+        parentPath: rootFolderName
+      });
+    });
+    
+    // Add files that are direct children of the root folder
+    folderResource.files.forEach(file => {
+      if (!file.path || !file.path.includes('/')) {
+        filesAndFolders.push({
+          ...file,
+          parentFolder: rootFolderName
+        });
+      }
+    });
+    
+    return filesAndFolders;
+  };
+
+  // Get child resources for a folder
+  const getFolderContents = (folder) => {
+    if (!folder) return [];
+    
+    console.log(`Getting contents for folder:`, folder);
+    
+    // For top-level folders
+    if (folder.type === 'folder' && !folder.isSubfolder && folder.files) {
+      console.log(`Processing top-level folder ${folder.name} with ${folder.files.length} files`);
+      // First get all files at the root level of the folder
+      const rootFiles = folder.files.filter(file => !file.path || !file.path.includes('/'));
+      console.log(`Found ${rootFiles.length} root files in folder ${folder.name}`);
+      
+      // Get all first-level subfolders
+      const subfolders = new Set();
+      folder.files.forEach(file => {
+        if (file.path && file.path.includes('/')) {
+          const firstFolder = file.path.split('/')[0];
+          if (firstFolder) {
+            subfolders.add(firstFolder);
+          }
+        }
+      });
+      
+      console.log(`Found ${subfolders.size} subfolders in folder ${folder.name}:`, Array.from(subfolders));
+      
+      // Create folder objects
+      const folderItems = Array.from(subfolders).map(subfolder => ({
+        id: `folder-${subfolder}-${Date.now()}`,
+        name: subfolder,
+        type: 'folder',
+        isSubfolder: true,
+        parentPath: folder.name
+      }));
+      
+      const result = [...folderItems, ...rootFiles];
+      console.log(`Returning ${result.length} items from folder ${folder.name}`);
+      return result;
+    }
+    
+    // For subfolders
+    if (folder.isSubfolder) {
+      console.log(`Processing subfolder ${folder.name} with parent path ${folder.parentPath}`);
+      const parentPath = folder.parentPath ? `${folder.parentPath}/` : '';
+      const folderPath = `${parentPath}${folder.name}`;
+      
+      // Find the root folder resource
+      const pathParts = folderPath.split('/');
+      const rootFolderName = pathParts[0];
+      const rootFolder = resources.find(r => r.type === 'folder' && r.name === rootFolderName);
+      
+      if (!rootFolder || !rootFolder.files) {
+        console.log(`Could not find root folder ${rootFolderName} or it has no files`);
+        return [];
+      }
+      
+      // For multi-level paths
+      if (pathParts.length > 1) {
+        const subPath = pathParts.slice(1).join('/');
+        console.log(`Looking for files in subfolder path: ${subPath}`);
+        
+        // Get files in this exact subfolder
+        const files = rootFolder.files.filter(file => {
+          // Files directly in this subfolder
+          if (file.path === subPath) return true;
+          
+          // Files in a deeper level that start with this path
+          if (file.path && file.path.startsWith(subPath + '/')) {
+            const remainingPath = file.path.substring(subPath.length + 1);
+            // Only include if it's a direct child (no further slashes)
+            return !remainingPath.includes('/');
+          }
+          
+          return false;
+        });
+        
+        console.log(`Found ${files.length} files directly in subfolder path: ${subPath}`);
+        
+        // Get subfolders in this folder
+        const subfolders = new Set();
+        rootFolder.files.forEach(file => {
+          if (file.path && file.path.startsWith(subPath + '/')) {
+            const remainingPath = file.path.substring(subPath.length + 1);
+            const parts = remainingPath.split('/');
+            if (parts.length > 0 && parts[0]) {
+              subfolders.add(parts[0]);
+            }
+          }
+        });
+        
+        console.log(`Found ${subfolders.size} subfolders in path ${subPath}:`, Array.from(subfolders));
+        
+        // Create folder objects
+        const folderItems = Array.from(subfolders).map(subfolder => ({
+          id: `folder-${subfolder}-${Date.now()}`,
+          name: subfolder,
+          type: 'folder',
+          isSubfolder: true,
+          parentPath: folderPath
+        }));
+        
+        const result = [...folderItems, ...files];
+        console.log(`Returning ${result.length} items from subfolder ${folder.name}`);
+        return result;
+      }
+    }
+    
+    console.log(`Folder ${folder.name} doesn't match criteria, returning empty array`);
+    return [];
+  };
+
+  // Get all resources at current path
+  const displayResources = getResourcesAtCurrentPath();
+
+  // Handle resource click
+  const handleResourceClick = (resource) => {
+    const resourceId = resource._id || resource.id;
+    
+    if (resource.type === 'folder') {
+      if (!expandedFolders[resourceId]) {
+        // Expand the folder
+        setExpandedFolders(prev => ({
+          ...prev,
+          [resourceId]: true
+        }));
+      }
+    }
+    onSelectResource(resource);
+  };
+
+  // Navigate up one level
+  const handleNavigateUp = () => {
+    if (!currentPathState) return;
+    
+    const pathParts = currentPathState.split('/');
+    if (pathParts.length === 1) {
+      // At root folder, go back to global root
+      setCurrentPathState('');
+      onSelectResource(null);
+    } else {
+      // Go up one subfolder level
+      const newPath = pathParts.slice(0, -1).join('/');
+      setCurrentPathState(newPath);
+      
+      // Try to select the parent folder
+      const resources = getResourcesAtCurrentPath();
+      const parentFolder = resources.find(r => r.type === 'folder');
+      if (parentFolder) {
+        onSelectResource(parentFolder);
+      }
+    }
+  };
+
+  // Open rename modal
+  const handleRenameClick = (e, resource) => {
+    e.stopPropagation();
+    setResourceToRename(resource);
+    setNewName(resource.name);
+    setRenameModalOpen(true);
+  };
+
+  // Open delete modal
+  const handleDeleteClick = (e, resource) => {
+    e.stopPropagation();
+    setResourceToDelete(resource);
+    setConfirmDeleteModalOpen(true);
+  };
+
+  // Submit rename
+  const handleRenameSubmit = async () => {
+    if (!newName.trim() || !resourceToRename) {
+      setRenameModalOpen(false);
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Authentication token missing. Please log in again.');
+        setRenameModalOpen(false);
+        return;
+      }
+      
+      // Get the resource ID (either MongoDB _id or client-side id)
+      const resourceId = resourceToRename._id || resourceToRename.id;
+      
+      // Call API to rename resource
+      const response = await fetch(`${config.API_BASE_URL}/api/resources/${resourceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          name: newName,
+          description: resourceToRename.description
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to rename resource: ${response.status} ${response.statusText}`);
+      }
+      
+      const updatedResource = await response.json();
+      
+      // Call the parent component's rename handler with the updated resource
+      if (onRenameResource) {
+        onRenameResource(resourceToRename, updatedResource);
+      }
+      
+      setRenameModalOpen(false);
+      setResourceToRename(null);
+      setNewName('');
+    } catch (error) {
+      console.error('Error renaming resource:', error);
+      alert(`Failed to rename resource: ${error.message}`);
+      setRenameModalOpen(false);
+    }
+  };
+
+  // Confirm delete
+  const handleDeleteConfirm = async () => {
+    if (!resourceToDelete) {
+      setConfirmDeleteModalOpen(false);
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Authentication token missing. Please log in again.');
+        setConfirmDeleteModalOpen(false);
+        return;
+      }
+      
+      // Get the resource ID (either MongoDB _id or client-side id)
+      const resourceId = resourceToDelete._id || resourceToDelete.id;
+      
+      // Call API to delete resource
+      const response = await fetch(`${config.API_BASE_URL}/resources/${resourceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete resource: ${response.status} ${response.statusText}`);
+      }
+      
+      // Call the parent component's delete handler
+      if (onDeleteResource) {
+        onDeleteResource(resourceToDelete);
+      }
+      
+      setConfirmDeleteModalOpen(false);
+      setResourceToDelete(null);
+    } catch (error) {
+      console.error('Error deleting resource:', error);
+      alert(`Failed to delete resource: ${error.message}`);
+      setConfirmDeleteModalOpen(false);
+    }
+  };
+
+  // Render breadcrumb navigation
+  const renderBreadcrumbs = () => {
+    if (!currentPathState) return null;
+    
+    const parts = currentPathState.split('/');
+    
+    return (
+      <div className="file-tree-breadcrumbs">
+        <button className="breadcrumb-home" onClick={() => {
+          setCurrentPathState('');
+          onSelectResource(null);
+        }}>
+          <FontAwesomeIcon icon={faHome} />
+        </button>
+        {parts.map((part, index) => {
+          const path = parts.slice(0, index + 1).join('/');
+          const isLast = index === parts.length - 1;
+          
+          return (
+            <React.Fragment key={path}>
+              <span className="breadcrumb-separator">/</span>
+              <button 
+                className={`breadcrumb-item ${isLast ? 'active' : ''}`}
+                onClick={() => {
+                  if (!isLast) {
+                    setCurrentPathState(path);
+                    // Try to select the folder
+                    const folderParts = path.split('/');
+                    const folderName = folderParts[folderParts.length - 1];
+                    const folder = displayResources.find(r => r.type === 'folder' && r.name === folderName);
+                    if (folder) onSelectResource(folder);
+                  }
+                }}
+              >
+                {part}
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Recursive function to render folder contents
+  const renderResourceItem = (resource, depth = 0) => {
+    // Use either _id (from MongoDB) or id (from client-side)
+    const resourceId = resource._id || resource.id;
+    const isExpanded = expandedFolders[resourceId];
+    const folderContents = resource.type === 'folder' ? getFolderContents(resource) : [];
+    
+    console.log(`Rendering resource: ${resource.name}, type: ${resource.type}, expanded: ${isExpanded}, folder contents: ${folderContents.length}`);
+    
+    // Check if this resource is selected
+    const isSelected = selectedResource && 
+      (selectedResource._id === resourceId || selectedResource.id === resourceId);
+    
+    return (
+      <React.Fragment key={resourceId || `resource-${resource.name}-${Math.random()}`}>
+        <li 
+          className={`resource-item ${isSelected ? 'selected' : ''}`}
+          onClick={() => handleResourceClick(resource)}
+          style={{ paddingLeft: `${depth * 10 + 15}px` }}
+        >
+          <div className="resource-item-content">
+            {resource.type === 'folder' && (
+              <button 
+                className="folder-toggle-btn"
+                onClick={(e) => toggleFolderExpansion(e, resourceId)}
+              >
+                <FontAwesomeIcon 
+                  icon={isExpanded ? faChevronDown : faChevronRight}
+                  className="toggle-icon"
+                />
+              </button>
+            )}
+            <FontAwesomeIcon 
+              icon={
+                resource.type === 'folder' 
+                  ? (isExpanded ? faFolderOpen : faFolder)
+                  : resource.type === 'link' 
+                    ? faLink 
+                    : faFile
+              } 
+              className="resource-icon"
+            />
+            <span className="resource-name">{resource.name}</span>
+          </div>
+          <div className="resource-item-actions">
+            <button 
+              className="resource-action-btn" 
+              onClick={(e) => handleRenameClick(e, resource)}
+              title="Rename"
+            >
+              <FontAwesomeIcon icon={faEdit} />
+            </button>
+            <button 
+              className="resource-action-btn" 
+              onClick={(e) => handleDeleteClick(e, resource)}
+              title="Delete"
+            >
+              <FontAwesomeIcon icon={faTrash} />
+            </button>
+          </div>
+        </li>
+        
+        {/* Render folder contents if expanded */}
+        {resource.type === 'folder' && isExpanded && folderContents.length > 0 && (
+          <li key={`folder-contents-${resourceId}`} className="folder-contents">
+            <ul className="resource-sublist">
+              {folderContents.map(item => renderResourceItem(item, depth + 1))}
+            </ul>
+          </li>
+        )}
+      </React.Fragment>
+    );
+  };
+
+  return (
+    <div className="resource-file-tree">
+      <div className="file-tree-header">
+        <h4>Resources</h4>
+        {currentPathState && (
+          <button className="navigate-up-btn" onClick={handleNavigateUp} title="Navigate Up">
+            <FontAwesomeIcon icon={faArrowUp} />
+          </button>
+        )}
+      </div>
+      
+      {renderBreadcrumbs()}
+      
+      <div className="file-tree-content">
+        {displayResources.length === 0 ? (
+          <div className="empty-file-tree">
+            <p>No resources {currentPathState ? 'in this folder' : 'yet'}</p>
+          </div>
+        ) : (
+          <ul className="resource-list">
+            {displayResources.map(resource => renderResourceItem(resource))}
+          </ul>
+        )}
+      </div>
+      
+      {/* Rename Modal */}
+      {renameModalOpen && (
+        <div className="modal-overlay">
+          <div className="rename-modal">
+            <h3>Rename {resourceToRename?.type === 'folder' ? 'Folder' : 'File'}</h3>
+            <div className="form-group">
+              <label>New Name</label>
+              <input 
+                type="text" 
+                value={newName} 
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Enter new name"
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-button" onClick={() => setRenameModalOpen(false)}>
+                Cancel
+              </button>
+              <button 
+                className="save-button" 
+                onClick={handleRenameSubmit}
+                disabled={!newName.trim()}
+              >
+                Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteModalOpen && (
+        <div className="modal-overlay">
+          <div className="delete-modal">
+            <h3>Delete {resourceToDelete?.type === 'folder' ? 'Folder' : 'File'}</h3>
+            <p>Are you sure you want to delete "{resourceToDelete?.name}"?
+              {resourceToDelete?.type === 'folder' ? ' This will delete all files within the folder.' : ''}
+            </p>
+            <div className="modal-actions">
+              <button className="cancel-button" onClick={() => setConfirmDeleteModalOpen(false)}>
+                Cancel
+              </button>
+              <button 
+                className="delete-button" 
+                onClick={handleDeleteConfirm}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FilePreview = ({ file }) => {
+  const extension = file.fileExtension?.toLowerCase();
+  const [textContent, setTextContent] = useState('');
+  const [csvContent, setCsvContent] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Helper function to get preview URL for server-stored files
+  const getPreviewUrl = useCallback(() => {
+    // If we have a client-side previewUrl, use it
+    if (file.previewUrl) {
+      return file.previewUrl;
+    }
+    
+    // For server-side stored files
+    const fileId = file._id || file.id;
+    if (fileId) {
+      // If this is a file within a folder (has fileIndex property)
+      if (file.fileIndex !== undefined) {
+        // Use the view endpoint for preview, not download
+        return `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/view`;
+      }
+      // Regular file directly in resources
+      return `${config.API_BASE_URL}/resources/${fileId}/view`;
+    }
+    
+    return null;
+  }, [file]);
+  
+  // Helper for fetching text content from server
+  const fetchTextContent = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token missing');
+      }
+      
+      const fileId = file._id || file.id;
+      if (!fileId) {
+        throw new Error('File ID is missing');
+      }
+      
+      // Adjust URL based on whether it's a file in a folder or directly in resources
+      let url;
+      if (file.fileIndex !== undefined) {
+        // File is within a folder
+        url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/download`;
+      } else {
+        // Regular file directly in resources
+        url = `${config.API_BASE_URL}/resources/${fileId}/download`;
+      }
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status}`);
+      }
+      
+      const text = await response.text();
+      
+      if (extension === 'csv') {
+        // Parse CSV content
+        const rows = text.split('\n').map(row => row.split(','));
+        setCsvContent(rows);
+      } else {
+        // Set as text content
+        setTextContent(text);
+      }
+    } catch (error) {
+      console.error('Error fetching text content:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [file, extension]);
+  
+  useEffect(() => {
+    // Reset states when file changes
+    setTextContent('');
+    setCsvContent([]);
+    setError(null);
+    
+    // Text file handling
+    const isTextFile = ['txt', 'md', 'js', 'jsx', 'css', 'html', 'json', 'xml'].includes(extension);
+    
+    if (isTextFile || extension === 'csv') {
+      if (file.file) {
+        // Client-side file - use FileReader
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          
+          if (extension === 'csv') {
+            // Parse CSV content
+            const rows = content.split('\n').map(row => row.split(','));
+            setCsvContent(rows);
+          } else {
+            // Set as text content
+            setTextContent(content);
+          }
+        };
+        reader.readAsText(file.file);
+      } else if (file._id || file.id) {
+        // Server-side file - fetch content
+        fetchTextContent();
+      }
+    }
+  }, [file, extension, fetchTextContent]);
+  
+  // Helper function for downloading files
+  const downloadFile = async () => {
+    try {
+      console.log('Starting file download process');
+      // Check if we have a local file blob or need to fetch from server
+      if (file.file && file.previewUrl) {
+        console.log('Using local file blob for download');
+        // We have a local file blob
+        const link = document.createElement('a');
+        link.href = file.previewUrl;
+        link.download = file.name || `download.${extension || 'file'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.log('Need to fetch file from server');
+        // We need to fetch from the server
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found in localStorage');
+          alert('Authentication token missing. Please log in again.');
+          return;
+        }
+
+        // Get the file ID
+        const fileId = file._id || file.id;
+        
+        if (!fileId) {
+          console.error('File ID is missing', file);
+          alert('Unable to download file: File ID is missing');
+          return;
+        }
+
+        console.log(`Downloading file with ID: ${fileId}`);
+        console.log(`Using token: ${token.substring(0, 10)}...`);
+
+        // Determine URL based on whether it's a file in a folder
+        let url;
+        if (file.fileIndex !== undefined) {
+          // File is within a folder
+          url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/download`;
+        } else {
+          // Regular file directly in resources
+          url = `${config.API_BASE_URL}/resources/${fileId}/download`;
+        }
+
+        // Instead of window.open, create a fetch request with proper authentication
+        // and create a blob URL from the response
+        try {
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': token
+            }
+          });
+          
+          if (!response.ok) {
+            const responseText = await response.text();
+            console.error(`Failed to download file: ${response.status} - ${responseText}`);
+            throw new Error(`Failed to download file: ${response.status} - ${responseText}`);
+          }
+          
+          // Get the blob from the response
+          const blob = await response.blob();
+          console.log(`Downloaded file blob of size: ${blob.size} bytes and type: ${blob.type}`);
+          
+          // Create a blob URL for the file
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // Create a link and click it to download
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = file.name || `download.${extension || 'file'}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Clean up the blob URL
+          setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+          }, 100);
+          
+          console.log('File download completed successfully');
+        } catch (error) {
+          console.error('Error downloading file:', error);
+          alert(`Download error: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error in downloadFile function:', error);
+      alert(`Failed to download file: ${error.message}`);
+    }
+  };
+  
+  // Helper function for opening in new tab
+  const openInNewTab = async () => {
+    try {
+      const previewUrl = getPreviewUrl();
+      if (!previewUrl) {
+        alert('Preview URL is not available');
+        return;
+      }
+      
+      // Get the token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Authentication token missing. Please log in again.');
+        return;
+      }
+      
+      // Get the file ID
+      const fileId = file._id || file.id;
+      if (!fileId) {
+        alert('File ID is missing');
+        return;
+      }
+      
+      console.log(`Opening file with ID: ${fileId} in new tab`);
+      
+      // For client-side files, we can open directly
+      if (file.previewUrl && file.file) {
+        window.open(file.previewUrl, '_blank');
+        return;
+      }
+      
+      // For server files, we need to fetch with authentication
+      let url;
+      
+      // Determine if this is a file in a folder
+      if (file.fileIndex !== undefined) {
+        // File is within a folder
+        url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/view`;
+      } else {
+        // Regular file directly in resources
+        url = `${config.API_BASE_URL}/resources/${fileId}/view`;
+      }
+      
+      // Fetch the file with auth token
+      const response = await fetch(url, {
+        method: 'GET',  // Changed to GET for both view endpoints
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status}`);
+      }
+      
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a blob URL and open in new tab
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      
+      // Clean up the blob URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 5000); // Give it more time since we're opening in a new tab
+    } catch (error) {
+      console.error('Error opening file in new tab:', error);
+      alert(`Failed to open file: ${error.message}`);
+    }
+  };
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="file-preview loading-preview">
+        <div className="loading-spinner"></div>
+        <p>Loading preview...</p>
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="file-preview error-preview">
+        <div className="error-icon">
+          <FontAwesomeIcon icon={faTimes} size="3x" />
+        </div>
+        <h3>Error Loading Preview</h3>
+        <p>{error}</p>
+        <div className="preview-actions">
+          <button className="resource-action-button" onClick={downloadFile}>
+            <FontAwesomeIcon icon={faDownload} /> Download Instead
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Create a generic preview for file types that can't be displayed due to CSP
+  const createGenericPreview = (icon, title, description) => {
+    return (
+      <div className="file-preview generic-preview">
+        <div className="generic-preview-content">
+          <div className="preview-icon">
+            <FontAwesomeIcon icon={icon} size="4x" />
+          </div>
+          <h3 className="preview-title">{title}</h3>
+          <p className="preview-description">{description}</p>
+          <div className="preview-actions">
+            <button className="resource-action-button" onClick={openInNewTab}>
+              <FontAwesomeIcon icon={faExternalLinkAlt} /> Open in New Tab
+            </button>
+            <button className="resource-action-button" onClick={downloadFile}>
+              <FontAwesomeIcon icon={faDownload} /> Download
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Image preview using img tag (generally allowed in CSP)
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) {
+    const previewUrl = getPreviewUrl();
+    if (previewUrl) {
+      return (
+        <div className="file-preview image-preview">
+          <img src={previewUrl} alt={file.name} />
+          <div className="preview-actions">
+            <button className="resource-action-button" onClick={downloadFile}>
+              <FontAwesomeIcon icon={faDownload} /> Download
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
+  
+  // PDF preview using fallback display
+  if (extension === 'pdf') {
+    return createGenericPreview(
+      faFilePdf,
+      'PDF Document',
+      'Due to Content Security Policy restrictions, the PDF cannot be previewed directly. You can download it or open it in a new tab.'
+    );
+  }
+  
+  // Office documents
+  if (['doc', 'docx'].includes(extension)) {
+    return createGenericPreview(
+      faFileWord,
+      'Word Document',
+      'Microsoft Word documents cannot be previewed in the browser due to security restrictions. You can download it or open it in a new tab.'
+    );
+  }
+  
+  if (['ppt', 'pptx'].includes(extension)) {
+    return createGenericPreview(
+      faFilePowerpoint,
+      'PowerPoint Presentation',
+      'Microsoft PowerPoint presentations cannot be previewed in the browser due to security restrictions. You can download it or open it in a new tab.'
+    );
+  }
+  
+  if (['xls', 'xlsx'].includes(extension)) {
+    return createGenericPreview(
+      faFileExcel,
+      'Excel Spreadsheet',
+      'Microsoft Excel spreadsheets cannot be previewed in the browser due to security restrictions. You can download it or open it in a new tab.'
+    );
+  }
+  
+  // CSV preview (parsed and displayed directly, not using blob URL)
+  if (extension === 'csv' && csvContent.length > 0) {
+    return (
+      <div className="file-preview csv-preview">
+        <div className="csv-table-container">
+          <table className="csv-table">
+            <thead>
+              {csvContent.length > 0 && (
+                <tr>
+                  {csvContent[0].map((cell, index) => (
+                    <th key={index}>{cell}</th>
+                  ))}
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {csvContent.slice(1).map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={cellIndex}>{cell}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="preview-actions">
+          <button className="resource-action-button" onClick={downloadFile}>
+            <FontAwesomeIcon icon={faDownload} /> Download
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Text file preview (displayed directly, not using blob URL)
+  if (['txt', 'md', 'js', 'jsx', 'css', 'html', 'json', 'xml'].includes(extension) && textContent !== '') {
+    return (
+      <div className="file-preview text-preview">
+        <pre>{textContent}</pre>
+        <div className="preview-actions">
+          <button className="resource-action-button" onClick={downloadFile}>
+            <FontAwesomeIcon icon={faDownload} /> Download
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Audio and video might also be restricted by CSP
+  if (['mp3', 'wav', 'ogg', 'mp4', 'webm'].includes(extension)) {
+    const mediaType = ['mp3', 'wav', 'ogg'].includes(extension) ? 'Audio' : 'Video';
+    const icon = ['mp3', 'wav', 'ogg'].includes(extension) ? faFileAudio : faFileVideo;
+    
+    return createGenericPreview(
+      icon,
+      `${mediaType} File`,
+      `Due to Content Security Policy restrictions, ${mediaType.toLowerCase()} files cannot be previewed directly. You can download it or open it in a new tab.`
+    );
+  }
+  
+  // Default: Generic preview for any other file type
+  return createGenericPreview(
+    faFile,
+    file.name || 'File',
+    'This file type cannot be previewed in the browser. You can download it or open it in a new tab.'
+  );
+};
+
+// ResourceViewer component to display details of selected resources
+const ResourceViewer = ({ resource, onClose, onNavigate }) => {
+  if (!resource) return null;
+  
+  const getFileTypeIcon = (resource) => {
+    if (resource.type === 'folder') return faFolder;
+    if (resource.type === 'link') return faLink;
+    
+    // Determine icon based on file extension
+    const extension = resource.fileExtension?.toLowerCase();
+    if (!extension) return faFile;
+    
+    // Add more icons based on file types as needed
+    const fileTypeIcons = {
+      'pdf': faFilePdf,
+      'doc': faFileWord,
+      'docx': faFileWord,
+      'xls': faFileExcel,
+      'xlsx': faFileExcel,
+      'ppt': faFilePowerpoint,
+      'pptx': faFilePowerpoint,
+      'txt': faFile,
+      'jpg': faFile,
+      'jpeg': faFile,
+      'png': faFile,
+      'gif': faFile
+    };
+    
+    return fileTypeIcons[extension] || faFile;
+  };
+  
+  // Handle downloading the file
+  const handleDownload = async () => {
+    if (resource.type !== 'file') return;
+    
+    try {
+      // Check if we have a local file blob or need to fetch from server
+      if (resource.previewUrl) {
+        // We have a local file blob
+        const link = document.createElement('a');
+        link.href = resource.previewUrl;
+        link.download = resource.name || resource.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // We need to fetch from the server
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert('Authentication token missing. Please log in again.');
+          return;
+        }
+
+        // Get the resource ID
+        const resourceId = resource._id || resource.id;
+        
+        if (!resourceId) {
+          console.error('Resource ID is missing');
+          alert('Unable to download file: Resource ID is missing');
+          return;
+        }
+
+        // Instead of window.open, create a fetch request with proper authentication
+        // and create a blob URL from the response
+        try {
+          const response = await fetch(`${config.API_BASE_URL}/resources/${resourceId}/download`, {
+            headers: {
+              'Authorization': token
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to download file: ${response.status}`);
+          }
+          
+          // Get the blob from the response
+          const blob = await response.blob();
+          
+          // Create a blob URL for the file
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // Create a link and click it to download
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = resource.name || resource.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Clean up the blob URL
+          setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+          }, 100);
+        } catch (error) {
+          console.error('Error downloading file:', error);
+          alert(`Download error: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert(`Failed to download file: ${error.message}`);
+    }
+  };
+  
+  // Render different views based on resource type
+  const renderResourceContent = () => {
+    if (resource.type === 'link') {
+      return (
+        <div className="link-resource">
+          <p><strong>URL:</strong> <a href={resource.url} target="_blank" rel="noopener noreferrer">{resource.url}</a></p>
+          {resource.description && (
+            <div className="resource-description">
+              <h4>Description</h4>
+              <p>{resource.description}</p>
+            </div>
+          )}
+          <button className="resource-action-button" onClick={() => window.open(resource.url, '_blank')}>
+            <FontAwesomeIcon icon={faEye} /> Visit Link
+          </button>
+        </div>
+      );
+    } else if (resource.type === 'folder') {
+      return (
+        <div className="folder-resource">
+          <div className="folder-info">
+            <p><strong>Folder:</strong> {resource.name}</p>
+            <p><strong>Files:</strong> {resource.files ? resource.files.length : 0}</p>
+          </div>
+          
+          {resource.description && (
+            <div className="resource-description">
+              <h4>Description</h4>
+              <p>{resource.description}</p>
+            </div>
+          )}
+          
+          <div className="folder-files">
+            <h4>Files</h4>
+            {resource.files && resource.files.length > 0 ? (
+              <ul className="folder-file-list">
+                {resource.files.map((file, index) => (
+                  <li key={index} className="folder-file-item">
+                    <div className="folder-file-details" onClick={() => onNavigate({...file, _id: resource._id, fileIndex: index})}>
+                      <FontAwesomeIcon icon={faFile} className="file-icon" />
+                      <span className="file-name">{file.name}</span>
+                      <span className="file-size">{Math.round(file.fileSize / 1024)} KB</span>
+                    </div>
+                    <button 
+                      className="folder-file-download" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadFolderFile(resource._id, index, file.name);
+                      }}
+                      title="Download file"
+                    >
+                      <FontAwesomeIcon icon={faDownload} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="empty-folder">
+                <p>This folder is empty</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    } else if (resource.type === 'file') {
+      return (
+        <div className="file-resource">
+          <div className="file-details">
+            <p><strong>File Type:</strong> {resource.fileType || 'Unknown'}</p>
+            <p><strong>Size:</strong> {resource.fileSize ? `${Math.round(resource.fileSize / 1024)} KB` : 'Unknown'}</p>
+            {resource.path && <p><strong>Path:</strong> {resource.path}</p>}
+          </div>
+          
+          {resource.description && (
+            <div className="resource-description">
+              <h4>Description</h4>
+              <p>{resource.description}</p>
+            </div>
+          )}
+          
+          {/* File Preview */}
+          <FilePreview file={resource} />
+          
+          <button className="resource-action-button" onClick={handleDownload}>
+            <FontAwesomeIcon icon={faDownload} /> Download
+          </button>
+        </div>
+      );
+    }
+  };
+  
+  // Function to download a file from a folder
+  const downloadFolderFile = async (folderId, fileIndex, fileName) => {
+    try {
+      console.log(`Downloading file from folder: ${folderId}, index: ${fileIndex}`);
+      
+      // Get the token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found in localStorage');
+        alert('Authentication token missing. Please log in again.');
+        return;
+      }
+      
+      // Use fetch with proper headers instead of XMLHttpRequest
+      const response = await fetch(`${config.API_BASE_URL}/resources/${folderId}/files/${fileIndex}/download`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a blob URL for the file
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Create a link and click it to download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+    } catch (error) {
+      console.error('Error downloading file from folder:', error);
+      alert(`Failed to download file: ${error.message}`);
+    }
+  };
+  
+  return (
+    <div className="resource-viewer">
+      <div className="resource-viewer-header">
+        <div className="resource-title">
+          <FontAwesomeIcon icon={getFileTypeIcon(resource)} className="resource-icon" />
+          <h3>{resource.name}</h3>
+        </div>
+        <div className="resource-meta">
+          <span>Uploaded by {resource.uploadedBy}</span>
+          <span>on {new Date(resource.uploadedAt).toLocaleDateString()}</span>
+        </div>
+      </div>
+      
+      <div className="resource-viewer-content">
+        {renderResourceContent()}
+      </div>
+    </div>
+  );
+};
+
 export const ProjectDashboard = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -207,6 +1881,14 @@ export const ProjectDashboard = () => {
   // Add state for Jitsi meeting
   const [showMeeting, setShowMeeting] = useState(false);
   const [meetingRoom, setMeetingRoom] = useState('');
+
+  // Add state for Resource Library
+  const [resources, setResources] = useState([]);
+  const [selectedResource, setSelectedResource] = useState(null);
+  const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
+  const [currentFolderPath, setCurrentFolderPath] = useState('');
+  const [resourcesLoading, setResourcesLoading] = useState(false);
+  const [resourceError, setResourceError] = useState(null);
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -1133,6 +2815,99 @@ export const ProjectDashboard = () => {
     }
   }, [project]);
 
+  // Fetch resources from the backend
+  const fetchResources = useCallback(async () => {
+    if (!token || !id) return;
+    
+    try {
+      setResourcesLoading(true);
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/resources`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch resources: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Fetched resources:", data);
+      setResources(data);
+      setResourcesLoading(false);
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+      setResourceError(error.message);
+      setResourcesLoading(false);
+    }
+  }, [id, token]);
+
+  // Load resources when the dashboard is loaded
+  useEffect(() => {
+    if (hasAccess) {
+      fetchResources();
+    }
+  }, [hasAccess, fetchResources]);
+
+  // Add a function to handle resource upload
+  const handleResourceUpload = (resourceData) => {
+    // Add the new resource to the state
+    setResources(prev => [...prev, resourceData]);
+    
+    // Select the newly uploaded resource
+    setSelectedResource(resourceData);
+  };
+
+  // Function to handle resource rename
+  const handleRenameResource = (oldResource, updatedResource) => {
+    // Get resource IDs (either MongoDB _id or client-side id)
+    const oldResourceId = oldResource._id || oldResource.id;
+    
+    // Update the resources state with the renamed resource
+    setResources(prev => 
+      prev.map(res => {
+        const resId = res._id || res.id;
+        return resId === oldResourceId ? updatedResource : res;
+      })
+    );
+    
+    // If the renamed resource is currently selected, update it
+    if (selectedResource) {
+      const selectedId = selectedResource._id || selectedResource.id;
+      if (selectedId === oldResourceId) {
+        setSelectedResource(updatedResource);
+      }
+    }
+  };
+
+  // Function to handle resource deletion
+  const handleDeleteResource = (deletedResource) => {
+    // Get resource ID (either MongoDB _id or client-side id)
+    const deletedResourceId = deletedResource._id || deletedResource.id;
+    
+    // Remove the resource from the state
+    setResources(prev => {
+      return prev.filter(res => {
+        const resId = res._id || res.id;
+        return resId !== deletedResourceId;
+      });
+    });
+    
+    // If the deleted resource was selected, clear the selection
+    if (selectedResource) {
+      const selectedId = selectedResource._id || selectedResource.id;
+      if (selectedId === deletedResourceId) {
+        setSelectedResource(null);
+      }
+    }
+  };
+  
+  // Function to navigate to a file within a folder
+  const handleNavigateToFile = (file) => {
+    // Set the selected file as the selected resource
+    setSelectedResource(file);
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -1379,13 +3154,42 @@ export const ProjectDashboard = () => {
             <div className="resources-view">
               <div className="section-header">
                 <h3>Resource Library and Knowledge Base</h3>
-                <button className="add-button">
+                <button className="add-button" onClick={() => setIsResourceModalOpen(true)}>
                   <FontAwesomeIcon icon={faPlus} /> Add Resource
                 </button>
               </div>
-              <div className="empty-state">
-                <p>No resources have been added to this project yet.</p>
-                <button>Upload your first resource</button>
+              
+              <div className="resources-container">
+                {/* File Tree */}
+                <div className="resource-sidebar">
+                  <ResourceFileTree 
+                    resources={resources}
+                    onSelectResource={setSelectedResource}
+                    selectedResource={selectedResource}
+                    currentPath={currentFolderPath}
+                    onDeleteResource={handleDeleteResource}
+                    onRenameResource={handleRenameResource}
+                  />
+                </div>
+                
+                {/* Resource Content */}
+                <div className="resource-content">
+                  {selectedResource ? (
+                    <ResourceViewer 
+                      resource={selectedResource}
+                      onClose={() => setSelectedResource(null)}
+                      onNavigate={handleNavigateToFile}
+                    />
+                  ) : (
+                    <div className="empty-resource-viewer">
+                      <FontAwesomeIcon icon={faFileAlt} className="empty-icon" />
+                      <p>Select a resource to view its details</p>
+                      <button className="add-resource-btn" onClick={() => setIsResourceModalOpen(true)}>
+                        <FontAwesomeIcon icon={faPlus} /> Add Resource
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1460,6 +3264,14 @@ export const ProjectDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Resource Upload Modal */}
+      <ResourceUploadModal 
+        isOpen={isResourceModalOpen}
+        onClose={() => setIsResourceModalOpen(false)}
+        onUpload={handleResourceUpload}
+        projectId={id}
+      />
 
       {project && (
         <MessagePanel {...messagePanelProps} />

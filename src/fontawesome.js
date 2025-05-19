@@ -29,7 +29,25 @@ import {
   faSignOutAlt, 
   faNewspaper, 
   faPen,
-  faTrash
+  faTrash,
+  faChevronRight,
+  faChevronLeft,
+  faChevronDown,
+  faLink,
+  faFile,
+  faFolder,
+  faDownload,
+  faEye,
+  faFileAlt,
+  faFileWord,
+  faFilePowerpoint,
+  faFileExcel,
+  faFilePdf,
+  faExternalLinkAlt,
+  faFileAudio,
+  faFileVideo,
+  faHome,
+  faArrowUp
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add all icons to the library
@@ -57,7 +75,25 @@ library.add(
   faSignOutAlt, 
   faNewspaper, 
   faPen,
-  faTrash
+  faTrash,
+  faChevronRight,
+  faChevronLeft,
+  faChevronDown,
+  faLink,
+  faFile,
+  faFolder,
+  faDownload,
+  faEye,
+  faFileAlt,
+  faFileWord,
+  faFilePowerpoint,
+  faFileExcel,
+  faFilePdf,
+  faExternalLinkAlt,
+  faFileAudio,
+  faFileVideo,
+  faHome,
+  faArrowUp
 );
 
 // Export the FontAwesomeIcon component and all the icons
@@ -86,5 +122,23 @@ export {
   faSignOutAlt, 
   faNewspaper, 
   faPen,
-  faTrash
+  faTrash,
+  faChevronRight,
+  faChevronLeft,
+  faChevronDown,
+  faLink,
+  faFile,
+  faFolder,
+  faDownload,
+  faEye,
+  faFileAlt,
+  faFileWord,
+  faFilePowerpoint,
+  faFileExcel,
+  faFilePdf,
+  faExternalLinkAlt,
+  faFileAudio,
+  faFileVideo,
+  faHome,
+  faArrowUp
 }; 
