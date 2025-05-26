@@ -18,6 +18,7 @@ const blogsRouter = require('./routes/blogs');
 const communityRouter = require('./routes/community');
 const resourcesRouter = require('./routes/resources');
 const User = require('./models/User');
+const userRouter = require('./routes/user');
 
 const app = express();
 const server = http.createServer(app);
@@ -361,6 +362,9 @@ app.use('/community', communityRouter);
 // Mount resources router at multiple paths
 app.use('/api', resourcesRouter);
 app.use('/', resourcesRouter); // This will make /resources and /browseprojects/*/resources paths directly available
+
+// Use user router
+app.use('/users', userRouter);
 
 // Handle OPTIONS requests for manifest.json (CORS preflight)
 app.options('/manifest.json', (req, res) => {

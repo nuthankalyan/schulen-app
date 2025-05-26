@@ -43,13 +43,15 @@ import {
   faFileVideo,
   faHome,
   faArrowUp,
-  faChevronDown
+  faChevronDown,
+  faUserPlus
 } from '@fortawesome/free-solid-svg-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import io from 'socket.io-client';
 import JitsiMeetComponent from './JitsiMeetComponent';
+import ProfilePopover from './ProfilePopover';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -2083,6 +2085,73 @@ export const ProjectDashboard = () => {
   const [currentFolderPath, setCurrentFolderPath] = useState('');
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [resourceError, setResourceError] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState(localStorage.getItem('username') || '');
+  // Add a ref for the profile button
+  const profileBtnRef = useRef(null);
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
+  const [addUserInput, setAddUserInput] = useState('');
+  const [addUserError, setAddUserError] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const searchTimeout = useRef(null);
+
+  // Debounced user search
+  useEffect(() => {
+    if (!addUserInput.trim()) {
+      setSearchResults([]);
+      setSearchError('');
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    setSearchError('');
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        // Call backend user search API
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${config.API_BASE_URL}/users/search?query=${encodeURIComponent(addUserInput.trim())}`, {
+          headers: { 'Authorization': token }
+        });
+        if (!res.ok) throw new Error('Failed to search users');
+        const users = await res.json();
+        // Exclude users already in the project
+        const filtered = users.filter(u => !projectUsers.some(pu => pu.userId === u._id || pu.username === u.username));
+        setSearchResults(filtered);
+        setSearchLoading(false);
+      } catch (err) {
+        setSearchError('Error searching users');
+        setSearchResults([]);
+        setSearchLoading(false);
+      }
+    }, 400);
+    return () => searchTimeout.current && clearTimeout(searchTimeout.current);
+  }, [addUserInput, projectUsers]);
+
+  // Add user to project (real API call)
+  const handleAddUserToProject = async (user) => {
+    setAddUserError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ userId: user._id })
+      });
+      if (!res.ok) throw new Error('Failed to add user');
+      // Refresh project users
+      await fetchProjectUsers();
+      setAddUserInput('');
+      setSearchResults([]);
+    } catch (err) {
+      setAddUserError('Failed to add user');
+    }
+  };
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -3113,6 +3182,40 @@ export const ProjectDashboard = () => {
     setSelectedResource(fileObj);
   };
 
+  // Placeholder: Add user to project (should call backend API)
+  const handleAddUser = async () => {
+    if (!addUserInput.trim()) return;
+    // TODO: Replace with real API call
+    if (projectUsers.some(u => u.username === addUserInput.trim())) {
+      setAddUserError('User already in project');
+      return;
+    }
+    setProjectUsers(prev => [...prev, { username: addUserInput.trim(), userId: Date.now().toString() }]);
+    setAddUserInput('');
+    setAddUserError('');
+  };
+
+  // Remove user from project (owner or self)
+  const handleRemoveUser = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': token }
+      });
+      if (res.ok) {
+        // If the current user left, redirect them away
+        if (userId === localStorage.getItem('userId')) {
+          navigate('/main/myprojects');
+        } else {
+          await fetchProjectUsers();
+        }
+      }
+    } catch (err) {
+      // Optionally show error
+    }
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -3158,13 +3261,20 @@ export const ProjectDashboard = () => {
         </button>
         <h1>{project?.title || 'Project Dashboard'}</h1>
         <div className="dashboard-actions">
-          <button className="messages-button" onClick={toggleMessagePanel}>
+          <button
+            className="messages-button"
+            onClick={toggleMessagePanel}
+          >
             <FontAwesomeIcon icon={faComment} /> Messages
             {unreadMessageCount > 0 && (
               <span className="message-notification">{unreadMessageCount}</span>
             )}
           </button>
-          <button className="profile-button">
+          <button
+            className="profile-button"
+            ref={profileBtnRef}
+            onClick={() => setIsProfileModalOpen((open) => !open)}
+          >
             <FontAwesomeIcon icon={faUser} /> Profile
           </button>
         </div>
@@ -3491,6 +3601,84 @@ export const ProjectDashboard = () => {
           isCreator={meetingCreator === username}
         />
       )}
+      <ProfilePopover
+        isOpen={isProfileModalOpen}
+        anchorRef={profileBtnRef}
+        onClose={() => setIsProfileModalOpen(false)}
+        username={currentUsername}
+        setUsername={setCurrentUsername}
+      />
+      {/* User Management Panel Toggle Button */}
+      <div className={`user-panel-toggle-button${userPanelOpen ? ' hidden' : ''}`} onClick={() => setUserPanelOpen(true)}>
+        <FontAwesomeIcon icon={faUsers} />
+        <span className="user-panel-toggle-text">Users</span>
+      </div>
+      {/* User Management Panel */}
+      <div className={`user-panel${userPanelOpen ? '' : ' collapsed'}`}>
+        <div className="user-panel-header">
+          <h3>Project Users</h3>
+          <button className="close-user-panel-button" onClick={() => setUserPanelOpen(false)}>
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+        <div className="user-panel-content">
+          <div className="user-list-section">
+            <div className="user-list-title">Creator</div>
+            <div className="user-list-item owner">
+              <FontAwesomeIcon icon={faUsers} className="user-icon" />
+              <span className="user-name">{project?.ownerUsername || 'Unknown'}</span>
+              <span className="user-role">(Owner)</span>
+            </div>
+            <div className="user-list-title">Participants</div>
+            <ul className="user-list">
+              {projectUsers.filter(u => u.username !== project?.ownerUsername).map(user => (
+                <li key={user.userId} className="user-list-item">
+                  <FontAwesomeIcon icon={faUsers} className="user-icon" />
+                  <span className="user-name">{user.username}</span>
+                  {username === project?.ownerUsername && (
+                    <button className="remove-user-btn" onClick={() => handleRemoveUser(user.userId)} title="Remove user">
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  )}
+                  {username === user.username && username !== project?.ownerUsername && (
+                    <button className="remove-user-btn" onClick={() => handleRemoveUser(user.userId)} title="Leave project">
+                      Leave
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {username === project?.ownerUsername && (
+            <div className="add-user-section" style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={addUserInput}
+                onChange={e => setAddUserInput(e.target.value)}
+                placeholder="Search users to add"
+                className="add-user-input"
+                autoComplete="off"
+              />
+              {searchLoading && <div className="add-user-loading">Searching...</div>}
+              {searchError && <div className="add-user-error">{searchError}</div>}
+              {addUserInput && searchResults.length > 0 && (
+                <ul className="add-user-dropdown">
+                  {searchResults.map(user => (
+                    <li key={user._id} className="add-user-dropdown-item">
+                      <span className="dropdown-username">{user.username}</span>
+                      <span className="dropdown-email">{user.email}</span>
+                      <button className="add-user-btn" onClick={() => handleAddUserToProject(user)}>
+                        <FontAwesomeIcon icon={faUserPlus} /> Add
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {addUserError && <div className="add-user-error">{addUserError}</div>}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
