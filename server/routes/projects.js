@@ -1143,4 +1143,65 @@ router.post('/:id/whiteboard', authenticate, async (req, res) => {
     }
 });
 
+// Add user to project (enroll user)
+router.post('/:id/users', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { userId } = req.body;
+    try {
+        const project = await Project.findById(id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        // Only allow the owner to add users
+        if (String(project.userId) !== String(req.user.userId)) {
+            return res.status(403).json({ message: 'Only the project owner can add users' });
+        }
+
+        // Check if user is already enrolled
+        if (project.enrolledUsers.includes(userId)) {
+            return res.status(400).json({ message: 'User already enrolled' });
+        }
+
+        // Optionally, check if user exists
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        project.enrolledUsers.push(userId);
+        await project.save();
+
+        res.json({ message: 'User added to project' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding user to project', error: error.message });
+    }
+});
+
+// Remove user from project (owner or self can remove)
+router.delete('/:id/users/:userId', authenticate, async (req, res) => {
+    const { id, userId } = req.params;
+    try {
+        const project = await Project.findById(id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        // Only the owner or the user themselves can remove
+        if (
+            String(project.userId) !== String(req.user.userId) &&
+            String(userId) !== String(req.user.userId)
+        ) {
+            return res.status(403).json({ message: 'Not authorized to remove this user' });
+        }
+
+        // Remove user from enrolledUsers
+        const before = project.enrolledUsers.length;
+        project.enrolledUsers = project.enrolledUsers.filter(
+            uid => String(uid) !== String(userId)
+        );
+        if (project.enrolledUsers.length === before) {
+            return res.status(404).json({ message: 'User not enrolled in this project' });
+        }
+        await project.save();
+        res.json({ message: 'User removed from project' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing user from project', error: error.message });
+    }
+});
+
 module.exports = router;
