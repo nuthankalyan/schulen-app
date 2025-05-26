@@ -1111,26 +1111,113 @@ const FilePreview = ({ file }) => {
   const [csvContent, setCsvContent] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [blobUrl, setBlobUrl] = useState(null);
+  
+  // Clean up blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+  
+  // Create a blob URL for image and PDF files
+  useEffect(() => {
+    // Only for image files and PDFs
+    if (!['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf'].includes(extension)) {
+      return;
+    }
+    
+    const fetchFileAsBlob = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token missing');
+        }
+        
+        const fileId = file._id || file.id;
+        if (!fileId) {
+          throw new Error('File ID is missing');
+        }
+        
+        // Determine the correct URL
+        let url;
+        if (file.fileIndex !== undefined) {
+          // File is within a folder
+          url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/view`;
+        } else {
+          // Regular file directly in resources
+          url = `${config.API_BASE_URL}/resources/${fileId}/view`;
+        }
+        
+        console.log(`Fetching ${extension} file as blob from:`, url);
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file: ${response.status}`);
+        }
+        
+        // Get blob and create URL
+        const blob = await response.blob();
+        console.log('Retrieved blob:', blob.type, blob.size, 'bytes');
+        
+        // Create and store the blob URL
+        const blobUrl = URL.createObjectURL(blob);
+        console.log('Created blob URL for file:', blobUrl);
+        setBlobUrl(blobUrl);
+      } catch (error) {
+        console.error('Error creating blob URL:', error);
+        setError(`Failed to load file: ${error.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Only fetch if we don't already have a blob URL and this is a server-side file
+    if (!blobUrl && !file.previewUrl && (file._id || file.id)) {
+      fetchFileAsBlob();
+    }
+  }, [file, extension, blobUrl]);
   
   // Helper function to get preview URL for server-stored files
   const getPreviewUrl = useCallback(() => {
+    console.log('Getting preview URL for file:', file);
+    
     // If we have a client-side previewUrl, use it
     if (file.previewUrl) {
+      console.log('Using client-side previewUrl:', file.previewUrl);
       return file.previewUrl;
     }
     
     // For server-side stored files
     const fileId = file._id || file.id;
     if (fileId) {
+      console.log(`File ID found: ${fileId}, fileIndex: ${file.fileIndex}`);
+      
       // If this is a file within a folder (has fileIndex property)
       if (file.fileIndex !== undefined) {
         // Use the view endpoint for preview, not download
-        return `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/view`;
+        const url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/view`;
+        console.log('Using folder file view URL:', url);
+        return url;
       }
+      
       // Regular file directly in resources
-      return `${config.API_BASE_URL}/resources/${fileId}/view`;
+      const url = `${config.API_BASE_URL}/resources/${fileId}/view`;
+      console.log('Using regular file view URL:', url);
+      return url;
     }
     
+    console.warn('No previewUrl or fileId available');
     return null;
   }, [file]);
   
@@ -1139,6 +1226,8 @@ const FilePreview = ({ file }) => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      console.log('Fetching text content for file:', file);
       
       const token = localStorage.getItem('token');
       if (!token) {
@@ -1154,12 +1243,15 @@ const FilePreview = ({ file }) => {
       let url;
       if (file.fileIndex !== undefined) {
         // File is within a folder
+        console.log(`Using folder file endpoint with fileId: ${fileId}, fileIndex: ${file.fileIndex}`);
         url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/download`;
       } else {
         // Regular file directly in resources
+        console.log(`Using regular file endpoint with fileId: ${fileId}`);
         url = `${config.API_BASE_URL}/resources/${fileId}/download`;
       }
       
+      console.log('Fetching from URL:', url);
       const response = await fetch(url, {
         headers: {
           'Authorization': token
@@ -1170,11 +1262,24 @@ const FilePreview = ({ file }) => {
         throw new Error(`Failed to fetch file: ${response.status}`);
       }
       
-      const text = await response.text();
+      // Check response headers
+      const contentType = response.headers.get('Content-Type');
+      const contentLength = response.headers.get('Content-Length');
+      console.log(`Response content type: ${contentType}, length: ${contentLength}`);
+      
+      // Get the blob first to analyze it
+      const blob = await response.blob();
+      console.log(`Received blob of type: ${blob.type}, size: ${blob.size} bytes`);
+      
+      // For text files, read as text
+      const text = await blob.text();
+      
+      console.log(`Text file content length: ${text.length} characters`);
       
       if (extension === 'csv') {
         // Parse CSV content
         const rows = text.split('\n').map(row => row.split(','));
+        console.log(`CSV parsed into ${rows.length} rows`);
         setCsvContent(rows);
       } else {
         // Set as text content
@@ -1347,19 +1452,24 @@ const FilePreview = ({ file }) => {
       
       // For server files, we need to fetch with authentication
       let url;
+      let method = 'GET';
       
       // Determine if this is a file in a folder
       if (file.fileIndex !== undefined) {
         // File is within a folder
         url = `${config.API_BASE_URL}/resources/${fileId}/files/${file.fileIndex}/view`;
+        console.log('Using folder file view endpoint:', url);
       } else {
         // Regular file directly in resources
         url = `${config.API_BASE_URL}/resources/${fileId}/view`;
+        console.log('Using regular file view endpoint:', url);
       }
+      
+      console.log(`Fetching file with method ${method} from: ${url}`);
       
       // Fetch the file with auth token
       const response = await fetch(url, {
-        method: 'GET',  // Changed to GET for both view endpoints
+        method: method,
         headers: {
           'Authorization': token
         }
@@ -1371,9 +1481,11 @@ const FilePreview = ({ file }) => {
       
       // Get the blob from the response
       const blob = await response.blob();
+      console.log('Retrieved blob:', blob.type, blob.size, 'bytes');
       
       // Create a blob URL and open in new tab
       const blobUrl = URL.createObjectURL(blob);
+      console.log('Created blob URL:', blobUrl);
       window.open(blobUrl, '_blank');
       
       // Clean up the blob URL after a delay
@@ -1439,12 +1551,33 @@ const FilePreview = ({ file }) => {
   
   // Image preview using img tag (generally allowed in CSP)
   if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) {
-    const previewUrl = getPreviewUrl();
-    if (previewUrl) {
+    // Use the blob URL if available, or fall back to getPreviewUrl
+    const imageUrl = blobUrl || getPreviewUrl();
+    console.log('Image URL for preview:', imageUrl);
+    
+    if (imageUrl) {
       return (
         <div className="file-preview image-preview">
-          <img src={previewUrl} alt={file.name} />
+          {isLoading && (
+            <div className="loading-overlay">
+              <div className="loading-spinner"></div>
+              <p>Loading image...</p>
+            </div>
+          )}
+          <img 
+            src={imageUrl} 
+            alt={file.name} 
+            style={{ display: isLoading ? 'none' : 'block' }}
+            onLoad={() => setIsLoading(false)}
+            onError={(e) => {
+              console.error('Error loading image:', e);
+              setError('Failed to load image preview');
+            }} 
+          />
           <div className="preview-actions">
+            <button className="resource-action-button" onClick={openInNewTab}>
+              <FontAwesomeIcon icon={faExternalLinkAlt} /> Open in New Tab
+            </button>
             <button className="resource-action-button" onClick={downloadFile}>
               <FontAwesomeIcon icon={faDownload} /> Download
             </button>
@@ -1454,12 +1587,43 @@ const FilePreview = ({ file }) => {
     }
   }
   
-  // PDF preview using fallback display
+  // PDF preview using PDF.js or direct embedding when possible
   if (extension === 'pdf') {
+    // If we have a blob URL for the PDF, use it for direct embedding
+    if (blobUrl) {
+      return (
+        <div className="file-preview pdf-preview">
+          {isLoading && (
+            <div className="loading-overlay">
+              <div className="loading-spinner"></div>
+              <p>Loading PDF document...</p>
+            </div>
+          )}
+          <iframe
+            src={blobUrl}
+            title={file.name || "PDF Document"}
+            width="100%"
+            height="100%"
+            style={{ border: 'none', display: isLoading ? 'none' : 'block' }}
+            onLoad={() => setIsLoading(false)}
+          />
+          <div className="preview-actions">
+            <button className="resource-action-button" onClick={openInNewTab}>
+              <FontAwesomeIcon icon={faExternalLinkAlt} /> Open in New Tab
+            </button>
+            <button className="resource-action-button" onClick={downloadFile}>
+              <FontAwesomeIcon icon={faDownload} /> Download
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
+    // If no blob URL yet, use generic preview while loading
     return createGenericPreview(
       faFilePdf,
       'PDF Document',
-      'Due to Content Security Policy restrictions, the PDF cannot be previewed directly. You can download it or open it in a new tab.'
+      'PDF preview is being prepared or Content Security Policy restricts direct embedding. You can download it or open it in a new tab.'
     );
   }
   
@@ -1559,7 +1723,33 @@ const FilePreview = ({ file }) => {
 
 // ResourceViewer component to display details of selected resources
 const ResourceViewer = ({ resource, onClose, onNavigate }) => {
+  console.log('ResourceViewer received resource:', resource);
+  
   if (!resource) return null;
+  
+  // Handle file details display
+  const getFileDetails = () => {
+    // If this is a file from a folder (has fileIndex)
+    if (resource.type === 'file' && resource.fileIndex !== undefined) {
+      return (
+        <div className="file-details">
+          <p><strong>File Type:</strong> {resource.fileType || 'Unknown'}</p>
+          <p><strong>Size:</strong> {resource.fileSize ? `${Math.round(resource.fileSize / 1024)} KB` : 'Unknown'}</p>
+          {resource.path && <p><strong>Path:</strong> {resource.path}</p>}
+          <p><strong>Location:</strong> Inside folder (file index: {resource.fileIndex})</p>
+        </div>
+      );
+    }
+    
+    // Regular file
+    return (
+      <div className="file-details">
+        <p><strong>File Type:</strong> {resource.fileType || 'Unknown'}</p>
+        <p><strong>Size:</strong> {resource.fileSize ? `${Math.round(resource.fileSize / 1024)} KB` : 'Unknown'}</p>
+        {resource.path && <p><strong>Path:</strong> {resource.path}</p>}
+      </div>
+    );
+  };
   
   const getFileTypeIcon = (resource) => {
     if (resource.type === 'folder') return faFolder;
@@ -1699,7 +1889,15 @@ const ResourceViewer = ({ resource, onClose, onNavigate }) => {
               <ul className="folder-file-list">
                 {resource.files.map((file, index) => (
                   <li key={index} className="folder-file-item">
-                    <div className="folder-file-details" onClick={() => onNavigate({...file, _id: resource._id, fileIndex: index})}>
+                    <div className="folder-file-details" onClick={() => {
+                      console.log(`Navigating to file in folder, index: ${index}`, file);
+                      onNavigate({
+                        ...file,
+                        _id: resource._id,
+                        fileIndex: index,
+                        type: 'file'
+                      });
+                    }}>
                       <FontAwesomeIcon icon={faFile} className="file-icon" />
                       <span className="file-name">{file.name}</span>
                       <span className="file-size">{Math.round(file.fileSize / 1024)} KB</span>
@@ -1728,11 +1926,7 @@ const ResourceViewer = ({ resource, onClose, onNavigate }) => {
     } else if (resource.type === 'file') {
       return (
         <div className="file-resource">
-          <div className="file-details">
-            <p><strong>File Type:</strong> {resource.fileType || 'Unknown'}</p>
-            <p><strong>Size:</strong> {resource.fileSize ? `${Math.round(resource.fileSize / 1024)} KB` : 'Unknown'}</p>
-            {resource.path && <p><strong>Path:</strong> {resource.path}</p>}
-          </div>
+          {getFileDetails()}
           
           {resource.description && (
             <div className="resource-description">
@@ -2973,8 +3167,19 @@ export const ProjectDashboard = () => {
   
   // Function to navigate to a file within a folder
   const handleNavigateToFile = (file) => {
+    console.log('Navigating to file:', file);
+    
+    // Make sure all necessary properties are correctly set
+    const fileObj = {
+      ...file,
+      type: 'file',
+      _id: file._id,
+      fileIndex: file.fileIndex
+    };
+    
+    console.log('Setting selected resource to:', fileObj);
     // Set the selected file as the selected resource
-    setSelectedResource(file);
+    setSelectedResource(fileObj);
   };
 
   // Placeholder: Add user to project (should call backend API)

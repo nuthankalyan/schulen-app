@@ -70,7 +70,7 @@ app.use((req, res, next) => {
     // Set Content Security Policy
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self'; img-src 'self' data: blob: * http://localhost:* https://schulen-app.onrender.com https://schulen-backend.onrender.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
+        "default-src 'self'; img-src 'self' data: blob: * http://localhost:* https://schulen-app.onrender.com https://schulen-backend.onrender.com https://schulen.tech https://www.schulen.tech; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://schulen-backend.onrender.com https://schulen.tech https://www.schulen.tech;"
     );
     
     // Set Cross-Origin-Resource-Policy
