@@ -64,7 +64,7 @@
 .copy-whiteboard-button,
 .export-whiteboard-button {
   background-color: rgb(41, 44, 88);
-  color: black;
+  color: white;
   border: none;
   padding: 8px 14px;
   border-radius: 5px;
