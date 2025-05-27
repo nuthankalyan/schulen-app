@@ -5,6 +5,7 @@ import config from '../config';
 import { FontAwesomeIcon } from '../fontawesome';
 import MessagePanel from './MessagePanel';
 import WhiteboardComponent from './WhiteboardComponent';
+import ScheduleMeetingModal from './ScheduleMeetingModal';
 import { 
   faUsers, 
   faTasks,
@@ -976,7 +977,7 @@ const ResourceFileTree = ({ resources, onSelectResource, selectedResource, curre
                 onClick={(e) => toggleFolderExpansion(e, resourceId)}
               >
                 <FontAwesomeIcon 
-                  icon={isExpanded ? faChevronDown : faChevronRight}
+                  icon={isExpanded ? faFolderOpen : faFolder}
                   className="toggle-icon"
                 />
               </button>
@@ -2077,13 +2078,21 @@ export const ProjectDashboard = () => {
   // Add state for Jitsi meeting
   const [showMeeting, setShowMeeting] = useState(false);
   const [meetingRoom, setMeetingRoom] = useState('');
-
   // Add state for Resource Library
   const [resources, setResources] = useState([]);
   const [selectedResource, setSelectedResource] = useState(null);
   const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
   const [currentFolderPath, setCurrentFolderPath] = useState('');
   const [resourcesLoading, setResourcesLoading] = useState(false);
+  
+  // Add state for scheduled meetings
+  const [scheduledMeetings, setScheduledMeetings] = useState([]);
+  const [isScheduleMeetingModalOpen, setIsScheduleMeetingModalOpen] = useState(false);
+  const [meetingsLoading, setMeetingsLoading] = useState(false);
+  
+  // Add state for notifications
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [resourceError, setResourceError] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [currentUsername, setCurrentUsername] = useState(localStorage.getItem('username') || '');
@@ -2124,7 +2133,7 @@ export const ProjectDashboard = () => {
       } catch (err) {
         setSearchError('Error searching users');
         setSearchResults([]);
-        setSearchLoading(false);
+    setSearchLoading(false);
       }
     }, 400);
     return () => searchTimeout.current && clearTimeout(searchTimeout.current);
@@ -2470,9 +2479,6 @@ export const ProjectDashboard = () => {
     // Add to target column with updated status
     const updatedTask = { ...task, status: targetColumnId };
     newTasks[targetColumnId] = [...newTasks[targetColumnId], updatedTask];
-    
-    // Update UI state first for responsiveness
-    setTasks(newTasks);
     
     // Update on server
     updateTaskOnServer(task.id, { status: targetColumnId })
@@ -2913,12 +2919,75 @@ export const ProjectDashboard = () => {
       alert(`Failed to create meeting: ${error.message}`);
     }
   };
-
   // Enter existing meeting
   const joinMeeting = () => {
     // Use the room name from the project state
     if (project && project.meetingRoom) {
       setMeetingRoom(project.meetingRoom);
+      setShowMeeting(true);
+    } else {
+      alert('Meeting room information is missing. Please try again later.');
+    }
+  };
+  
+  // Handle scheduling a new meeting
+  const handleScheduleMeeting = async (meetingData) => {
+    try {
+      console.log('Scheduling meeting:', meetingData);
+      
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/scheduledMeetings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify(meetingData)
+      });
+      
+      const responseText = await response.text();
+      console.log('Server response:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error(`Server returned invalid JSON: ${responseText}`);
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to schedule meeting: ${data.message || response.statusText}`);
+      }
+      
+      // Add the new meeting to our local state
+      setScheduledMeetings(prevMeetings => [...prevMeetings, data]);
+      
+      // Close the modal
+      setIsScheduleMeetingModalOpen(false);
+      
+      // Emit socket event to notify other users
+      if (socketRef.current) {
+        socketRef.current.emit('meetingScheduled', {
+          projectId: id,
+          meeting: data,
+          username
+        });
+      }
+      
+      // Refresh notifications
+      fetchNotifications();
+      
+      alert('Meeting scheduled successfully!');
+    } catch (error) {
+      console.error('Error scheduling meeting:', error);
+      alert(`Failed to schedule meeting: ${error.message}`);
+    }
+  };
+  
+  // Join a scheduled meeting
+  const joinScheduledMeeting = (meeting) => {
+    if (meeting && meeting.roomName) {
+      setMeetingRoom(meeting.roomName);
       setShowMeeting(true);
     } else {
       alert('Meeting room information is missing. Please try again later.');
@@ -3023,7 +3092,6 @@ export const ProjectDashboard = () => {
       alert(`Failed to end meeting: ${error.message}. The meeting interface has been closed, but the meeting may still be active for other users.`);
     }
   };
-
   // Socket.io connection
   useEffect(() => {
     if (hasAccess && id) {
@@ -3047,6 +3115,30 @@ export const ProjectDashboard = () => {
           meetingStartTime: data.active ? new Date() : null,
           meetingRoom: data.roomName
         }));
+      });
+      
+      // Listen for notifications
+      socketRef.current.on('notification', (data) => {
+        console.log('Notification received:', data);
+        
+        // Add the new notification to our local state
+        setNotifications(prevNotifications => [...prevNotifications, data]);
+        
+        // Increment unread count
+        setUnreadNotificationsCount(prevCount => prevCount + 1);
+        
+        // If it's a meeting notification, refresh the meetings list
+        if (data.type === 'meeting_scheduled') {
+          fetchScheduledMeetings();
+        }
+        
+        // Show a browser notification if supported
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Project Notification', {
+            body: data.message,
+            icon: '/favicon.ico'
+          });
+        }
         
         // If meeting ended, close the meeting interface
         if (!data.active && showMeeting) {
@@ -3069,7 +3161,6 @@ export const ProjectDashboard = () => {
       };
     }
   }, [hasAccess, id, showMeeting, username]);
-
   // Fetch meeting status when project is loaded
   useEffect(() => {
     if (project) {
@@ -3077,6 +3168,59 @@ export const ProjectDashboard = () => {
       setMeetingCreator(project.meetingCreator || null);
     }
   }, [project]);
+
+  // Fetch scheduled meetings from the backend
+  const fetchScheduledMeetings = useCallback(async () => {
+    if (!token || !id) return;
+    
+    try {
+      setMeetingsLoading(true);
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/scheduledMeetings`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch scheduled meetings: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Fetched scheduled meetings:", data);
+      setScheduledMeetings(data);
+    } catch (error) {
+      console.error('Error fetching scheduled meetings:', error);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  }, [id, token]);
+
+  // Fetch notifications from the backend
+  const fetchNotifications = useCallback(async () => {
+    if (!token || !id) return;
+    
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/notifications`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch notifications: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Fetched notifications:", data);
+      setNotifications(data);
+      
+      // Count unread notifications
+      const unreadCount = data.filter(notification => !notification.read).length;
+      setUnreadNotificationsCount(unreadCount);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  }, [id, token]);
 
   // Fetch resources from the backend
   const fetchResources = useCallback(async () => {
@@ -3104,13 +3248,20 @@ export const ProjectDashboard = () => {
       setResourcesLoading(false);
     }
   }, [id, token]);
-
   // Load resources when the dashboard is loaded
   useEffect(() => {
     if (hasAccess) {
       fetchResources();
     }
   }, [hasAccess, fetchResources]);
+  
+  // Load scheduled meetings when the dashboard is loaded
+  useEffect(() => {
+    if (hasAccess) {
+      fetchScheduledMeetings();
+      fetchNotifications();
+    }
+  }, [hasAccess, fetchScheduledMeetings, fetchNotifications]);
 
   // Add a function to handle resource upload
   const handleResourceUpload = (resourceData) => {
@@ -3439,14 +3590,74 @@ export const ProjectDashboard = () => {
                   {/* Show meeting controls to both owner and enrolled users */}
                   {(checkAccessClientSide(project) || project?.enrolledUsers?.includes(localStorage.getItem('userId'))) && (
                     <>
-                      <div className="meeting-actions">
-                        <button className="primary-button" onClick={createMeeting}>Create Meeting</button>
-                        <button className="secondary-button">Schedule Meeting</button>
+                      <div className="meeting-actions">                        <button className="primary-button" onClick={createMeeting}>Create Meeting</button>
+                        <button className="secondary-button" onClick={() => setIsScheduleMeetingModalOpen(true)}>Schedule Meeting</button>
                       </div>
                     </>
                   )}
-                  <div className="empty-state">
-                    <p>No active meetings at the moment.</p>
+                  
+                  {/* Scheduled Meetings Section */}
+                  <div className="scheduled-meetings-section">
+                    <h3>Scheduled Meetings</h3>
+                    {meetingsLoading ? (
+                      <div className="loading-spinner-container">
+                        <div className="loading-spinner"></div>
+                        <p>Loading scheduled meetings...</p>
+                      </div>
+                    ) : scheduledMeetings.length > 0 ? (
+                      <div className="scheduled-meetings-list">
+                        {scheduledMeetings.map((meeting) => {
+                          const meetingDate = new Date(meeting.scheduledFor);
+                          const isUpcoming = meetingDate > new Date();
+                          const isPast = meetingDate < new Date();
+                          const isToday = new Date().toDateString() === meetingDate.toDateString();
+                          
+                          return (
+                            <div 
+                              key={meeting.id} 
+                              className={`scheduled-meeting-card ${isUpcoming ? 'upcoming' : ''} ${isPast ? 'past' : ''} ${isToday ? 'today' : ''}`}
+                            >
+                              <div className="meeting-info">
+                                <h4>{meeting.title}</h4>
+                                {meeting.description && <p className="meeting-description">{meeting.description}</p>}
+                                <div className="meeting-meta">
+                                  <div className="meeting-time">
+                                    <FontAwesomeIcon icon={faCalendarAlt} />
+                                    <span>
+                                      {meetingDate.toLocaleDateString()} at {meetingDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <div className="meeting-duration">
+                                    <span>Duration: {meeting.duration} minutes</span>
+                                  </div>
+                                  <div className="meeting-organizer">
+                                    <span>Organized by: {meeting.createdBy}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="meeting-actions">
+                                {isUpcoming && (
+                                  <button 
+                                    className="primary-button" 
+                                    onClick={() => joinScheduledMeeting(meeting)}
+                                    disabled={!isToday}
+                                  >
+                                    {isToday ? 'Join Meeting' : 'Not Yet Available'}
+                                  </button>
+                                )}
+                                {isPast && (
+                                  <span className="past-meeting-label">Meeting Ended</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="empty-state">
+                        <p>No meetings are currently scheduled.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3587,6 +3798,14 @@ export const ProjectDashboard = () => {
         onUpload={handleResourceUpload}
         projectId={id}
       />
+      
+      {/* Schedule Meeting Modal */}
+      <ScheduleMeetingModal
+        isOpen={isScheduleMeetingModalOpen}
+        onClose={() => setIsScheduleMeetingModalOpen(false)}
+        onSchedule={handleScheduleMeeting}
+        projectId={id}
+      />
 
       {project && (
         <MessagePanel {...messagePanelProps} />
@@ -3677,10 +3896,66 @@ export const ProjectDashboard = () => {
               {addUserError && <div className="add-user-error">{addUserError}</div>}
             </div>
           )}
+          
+          {/* Notifications Section */}
+          <div className="notifications-section">
+            <div className="notifications-header">
+              <h3>Notifications</h3>
+              <span className="notifications-badge">{unreadNotificationsCount > 0 ? unreadNotificationsCount : ''}</span>
+            </div>
+            {notifications.length > 0 ? (
+              <ul className="notifications-list">
+                {notifications.map((notification, index) => (
+                  <li 
+                    key={notification._id || index} 
+                    className={`notification-item ${notification.read ? '' : 'unread'}`}
+                    onClick={async () => {
+                      if (!notification.read) {
+                        // Mark notification as read
+                        try {
+                          const response = await fetch(`${config.API_BASE_URL}/browseprojects/${id}/notifications/${index}/read`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': token
+                            }
+                          });
+                          
+                          if (response.ok) {
+                            // Update local state
+                            const updatedNotifications = [...notifications];
+                            updatedNotifications[index] = {...notification, read: true};
+                            setNotifications(updatedNotifications);
+                            
+                            // Update unread count
+                            setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+                          }
+                        } catch (error) {
+                          console.error('Error marking notification as read:', error);
+                        }
+                      }
+                    }}
+                  >
+                    <div className="notification-content">
+                      <p className="notification-message">{notification.message}</p>
+                      <span className="notification-time">
+                        {new Date(notification.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    {!notification.read && <div className="notification-unread-indicator"></div>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="empty-notifications">
+                <p>No notifications yet</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default ProjectDashboard; 
+export default ProjectDashboard;
