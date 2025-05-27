@@ -15,6 +15,19 @@ const TaskSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+// Schema for scheduled meetings
+const ScheduledMeetingSchema = new mongoose.Schema({
+  id: { type: String, required: true }, // Unique identifier for the meeting
+  title: { type: String, required: true },
+  description: { type: String },
+  scheduledFor: { type: Date, required: true }, // When the meeting is scheduled to start
+  duration: { type: Number, default: 60 }, // Duration in minutes
+  createdBy: { type: String, required: true }, // Username of the creator
+  createdAt: { type: Date, default: Date.now },
+  notified: { type: Boolean, default: false }, // Whether users have been notified
+  roomName: { type: String } // Optional room name for the meeting
+});
+
 const ProjectSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
@@ -31,10 +44,9 @@ const ProjectSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         requestDate: { type: Date, default: Date.now }
     }],
-    maxTeamSize: { type: Number, default: 4 },
-    viewCount: { type: Number, default: 0 },
+    maxTeamSize: { type: Number, default: 4 },    viewCount: { type: Number, default: 0 },
     activities: [{
-        type: { type: String, enum: ['status_change', 'enrollment_accepted', 'project_created', 'enrollment_request', 'task_created', 'task_updated', 'task_completed', 'whiteboard_update'] },
+        type: { type: String, enum: ['status_change', 'enrollment_accepted', 'project_created', 'enrollment_request', 'task_created', 'task_updated', 'task_completed', 'whiteboard_update', 'meeting_scheduled'] },
         timestamp: { type: Date, default: Date.now },
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         username: { type: String },
@@ -49,11 +61,20 @@ const ProjectSchema = new mongoose.Schema({
         taskCount: { type: Number, default: 0 },
         color: { type: String, default: '#3498db' } // Store user's chart color
     }],
-    // Meeting status
-    meetingActive: { type: Boolean, default: false },
+    // Meeting status    meetingActive: { type: Boolean, default: false },
     meetingCreator: { type: String }, // Username of the meeting creator
     meetingStartTime: { type: Date },
     meetingRoom: { type: String }, // Jitsi meeting room ID
+    // Scheduled meetings
+    scheduledMeetings: [ScheduledMeetingSchema],
+    // Notifications for meetings
+    notifications: [{
+        type: { type: String, enum: ['meeting_scheduled', 'meeting_reminder'] },
+        meetingId: { type: String },
+        message: { type: String },
+        timestamp: { type: Date, default: Date.now },
+        read: { type: Boolean, default: false }
+    }],
     // Whiteboard data
     whiteboardData: { 
         type: mongoose.Schema.Types.Mixed, // Store Excalidraw scene data as a mixed type

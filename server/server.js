@@ -227,6 +227,29 @@ io.on('connection', (socket) => {
             console.error('Error sending message:', error);
         }
     });
+      // Handle meeting notifications
+    socket.on('meetingScheduled', async (data) => {
+        try {
+            const { projectId, meeting, username } = data;
+            
+            if (!projectId || !meeting) {
+                console.error('Missing projectId or meeting data in meetingScheduled event');
+                return;
+            }
+            
+            // Broadcast notification to all users in the project room
+            io.to(projectId).emit('notification', {
+                type: 'meeting_scheduled',
+                meetingId: meeting.id,
+                message: `${username} scheduled a meeting: ${meeting.title} on ${new Date(meeting.scheduledFor).toLocaleString()}`,
+                timestamp: new Date()
+            });
+            
+            console.log(`Meeting scheduled notification sent for project ${projectId}`);
+        } catch (error) {
+            console.error('Error sending meeting notification:', error);
+        }
+    });
     
     // Handle meeting status updates
     socket.on('meetingStatusChanged', (data) => {

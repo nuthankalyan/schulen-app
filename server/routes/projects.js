@@ -1198,9 +1198,237 @@ router.delete('/:id/users/:userId', authenticate, async (req, res) => {
             return res.status(404).json({ message: 'User not enrolled in this project' });
         }
         await project.save();
-        res.json({ message: 'User removed from project' });
-    } catch (error) {
+        res.json({ message: 'User removed from project' });    } catch (error) {
         res.status(500).json({ message: 'Error removing user from project', error: error.message });
+    }
+});
+
+// Get all scheduled meetings for a project
+router.get('/:id/scheduledMeetings', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user has access to this project
+        const isOwner = project.userId.toString() === userId;
+        const isEnrolled = project.enrolledUsers.some(
+            enrolledUserId => enrolledUserId.toString() === userId
+        );
+
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ message: 'You do not have permission to view meetings in this project' });
+        }
+
+        res.status(200).json(project.scheduledMeetings || []);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching scheduled meetings', error: error.message });
+    }
+});
+
+// Schedule a new meeting
+router.post('/:id/scheduledMeetings', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { title, description, scheduledFor, duration } = req.body;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user has access to this project
+        const isOwner = project.userId.toString() === userId;
+        const isEnrolled = project.enrolledUsers.some(
+            enrolledUserId => enrolledUserId.toString() === userId
+        );
+
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ message: 'You do not have permission to schedule meetings in this project' });
+        }
+
+        // Get username for the meeting creator
+        const user = await User.findById(userId);
+        const username = user ? user.username : 'Unknown User';
+
+        // Create a unique meeting ID
+        const meetingId = `meeting-${Date.now()}`;
+
+        // Generate a unique meeting room name based on project ID and meeting ID
+        const roomName = `schulen-project-${id}-${meetingId}`;
+
+        // Create the scheduled meeting
+        const newMeeting = {
+            id: meetingId,
+            title,
+            description,
+            scheduledFor: new Date(scheduledFor),
+            duration: duration || 60,
+            createdBy: username,
+            createdAt: new Date(),
+            roomName
+        };
+
+        // Add the meeting to the project
+        project.scheduledMeetings = project.scheduledMeetings || [];
+        project.scheduledMeetings.push(newMeeting);
+
+        // Add a notification for all project members
+        const notification = {
+            type: 'meeting_scheduled',
+            meetingId,
+            message: `${username} scheduled a meeting: ${title} on ${new Date(scheduledFor).toLocaleString()}`,
+            timestamp: new Date(),
+            read: false
+        };
+
+        project.notifications = project.notifications || [];
+        project.notifications.push(notification);
+
+        // Add activity for meeting scheduling
+        project.activities.push({
+            type: 'meeting_scheduled',
+            userId,
+            username,
+            details: `Scheduled a meeting: ${title} for ${new Date(scheduledFor).toLocaleString()}`,
+            timestamp: new Date()
+        });
+
+        await project.save();
+
+        // If we have Socket.io set up, emit a notification event here
+        // That would be implemented in server.js
+
+        res.status(201).json(newMeeting);
+    } catch (error) {
+        res.status(500).json({ message: 'Error scheduling meeting', error: error.message });
+    }
+});
+
+// Delete a scheduled meeting
+router.delete('/:id/scheduledMeetings/:meetingId', authenticate, async (req, res) => {
+    const { id, meetingId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if meeting exists
+        const meetingIndex = project.scheduledMeetings ? 
+            project.scheduledMeetings.findIndex(meeting => meeting.id === meetingId) : -1;
+
+        if (meetingIndex === -1) {
+            return res.status(404).json({ message: 'Scheduled meeting not found' });
+        }
+
+        const meeting = project.scheduledMeetings[meetingIndex];
+
+        // Get username for authorization check
+        const user = await User.findById(userId);
+        const username = user ? user.username : 'Unknown User';
+
+        // Only the meeting creator or project owner can delete a meeting
+        const isOwner = project.userId.toString() === userId;
+        const isCreator = meeting.createdBy === username;
+
+        if (!isOwner && !isCreator) {
+            return res.status(403).json({ message: 'You do not have permission to delete this meeting' });
+        }
+
+        // Remove the meeting
+        project.scheduledMeetings.splice(meetingIndex, 1);
+
+        // Add activity for meeting deletion
+        project.activities.push({
+            type: 'meeting_scheduled', // Reuse the same activity type
+            userId,
+            username,
+            details: `Deleted scheduled meeting: ${meeting.title}`,
+            timestamp: new Date()
+        });
+
+        await project.save();
+
+        res.status(200).json({ message: 'Scheduled meeting deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting scheduled meeting', error: error.message });
+    }
+});
+
+// Get notifications for a project
+router.get('/:id/notifications', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user has access to this project
+        const isOwner = project.userId.toString() === userId;
+        const isEnrolled = project.enrolledUsers.some(
+            enrolledUserId => enrolledUserId.toString() === userId
+        );
+
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ message: 'You do not have permission to view notifications in this project' });
+        }
+
+        res.status(200).json(project.notifications || []);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching notifications', error: error.message });
+    }
+});
+
+// Mark notification as read
+router.patch('/:id/notifications/:notificationIndex/read', authenticate, async (req, res) => {
+    const { id, notificationIndex } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const project = await Project.findById(id);
+        
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+
+        // Check if user has access to this project
+        const isOwner = project.userId.toString() === userId;
+        const isEnrolled = project.enrolledUsers.some(
+            enrolledUserId => enrolledUserId.toString() === userId
+        );
+
+        if (!isOwner && !isEnrolled) {
+            return res.status(403).json({ message: 'You do not have permission to modify notifications in this project' });
+        }
+
+        // Check if notification exists
+        const index = parseInt(notificationIndex);
+        if (!project.notifications || !project.notifications[index]) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        // Mark notification as read
+        project.notifications[index].read = true;
+        await project.save();
+
+        res.status(200).json({ message: 'Notification marked as read' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating notification', error: error.message });
     }
 });
 
