@@ -93,8 +93,9 @@ const initialContributions = {
 };
 
 // Task component with Framer Motion
-const Task = ({ task, index, columnId, onEdit, onDelete, onDragEnd }) => {
+const Task = ({ task, index, columnId, onEdit, onDelete, onDragEnd, columnColor }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [hoveredColor, setHoveredColor] = useState(null);
 
   return (
     <motion.div
@@ -110,14 +111,15 @@ const Task = ({ task, index, columnId, onEdit, onDelete, onDragEnd }) => {
       dragElastic={0.1}
       whileDrag={{ 
         scale: 1.05, 
-        boxShadow: "0px 10px 25px rgba(0,0,0,0.2)",
+        boxShadow: `0px 10px 25px ${columnColor}`,
+        borderColor: columnColor,
         zIndex: 100,
         cursor: "grabbing"
       }}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={(event, info) => {
         setIsDragging(false);
-        onDragEnd(event, info, task, columnId);
+        onDragEnd(event, info, task, columnId, index);
       }}
     >
       <div className="task-content">
@@ -138,7 +140,7 @@ const Task = ({ task, index, columnId, onEdit, onDelete, onDragEnd }) => {
 };
 
 // KanbanColumn component with Framer Motion
-const KanbanColumn = ({ title, status, tasks, onEditTask, onDeleteTask, onDragEnd, color }) => {
+const KanbanColumn = React.forwardRef(({ title, status, tasks, onEditTask, onDeleteTask, onDragEnd, color, columnColor }, ref) => {
   return (
     <div className={`kanban-column ${status}-column`}>
       <div className="kanban-column-header" style={{ backgroundColor: color }}>
@@ -147,6 +149,7 @@ const KanbanColumn = ({ title, status, tasks, onEditTask, onDeleteTask, onDragEn
       <motion.div
         className="task-list"
         data-status={status}
+        ref={ref}
         whileHover={{ backgroundColor: "rgba(0,0,0,0.03)" }}
       >
         <AnimatePresence>
@@ -159,13 +162,14 @@ const KanbanColumn = ({ title, status, tasks, onEditTask, onDeleteTask, onDragEn
               onEdit={onEditTask}
               onDelete={onDeleteTask}
               onDragEnd={onDragEnd}
+              columnColor={columnColor}
             />
           ))}
         </AnimatePresence>
       </motion.div>
     </div>
   );
-};
+});
 
 // Resource Upload Modal with backend integration
 const ResourceUploadModal = ({ isOpen, onClose, onUpload, projectId }) => {
@@ -2435,58 +2439,46 @@ export const ProjectDashboard = () => {
   };
 
   // Handle task drag end with Framer Motion
-  const handleTaskDragEnd = (event, info, task, sourceColumnId) => {
-    // Get the current pointer position
+  const handleTaskDragEnd = (event, info, task, sourceColumnId, originalIndex) => {
     const { point } = info;
-    
-    // Find all column elements
-    const columns = document.querySelectorAll('.task-list');
-    let targetColumn = null;
-    
-    // Find which column the pointer is over
-    columns.forEach(column => {
-      const rect = column.getBoundingClientRect();
-      if (
-        point.x >= rect.left &&
-        point.x <= rect.right &&
-        point.y >= rect.top &&
-        point.y <= rect.bottom
-      ) {
-        targetColumn = column;
+    let targetColumnId = null;
+    Object.entries(columnRefs).forEach(([colId, ref]) => {
+      const node = ref.current;
+      if (node) {
+        const rect = node.getBoundingClientRect();
+        if (
+          point.x >= rect.left &&
+          point.x <= rect.right &&
+          point.y >= rect.top &&
+          point.y <= rect.bottom
+        ) {
+          targetColumnId = colId;
+        }
       }
     });
-    
-    // If not dropped on a column or dropped on the same column, do nothing
-    if (!targetColumn) return;
-    
-    const targetColumnId = targetColumn.getAttribute('data-status');
-    if (targetColumnId === sourceColumnId) return;
-    
-    console.log(`Moving task from ${sourceColumnId} to ${targetColumnId}`);
-    
-    // Validate that the target status is one of the accepted enum values
-    if (!['not-started', 'in-progress', 'completed'].includes(targetColumnId)) {
-      console.error(`Invalid target status: ${targetColumnId}. Must be one of: not-started, in-progress, completed`);
+    // If not dropped on a valid column or dropped on the same column, restore to original position
+    if (!targetColumnId || targetColumnId === sourceColumnId) {
+      const newTasks = { ...tasks };
+      newTasks[sourceColumnId] = newTasks[sourceColumnId].filter(t => t.id !== task.id);
+      newTasks[sourceColumnId] = [
+        ...newTasks[sourceColumnId].slice(0, originalIndex),
+        task,
+        ...newTasks[sourceColumnId].slice(originalIndex)
+      ];
+      setTasks(newTasks);
       return;
     }
-    
-    // Update tasks state
+    if (!['not-started', 'in-progress', 'completed'].includes(targetColumnId)) return;
+    // Optimistically update UI
     const newTasks = { ...tasks };
-    
-    // Remove from source column
     newTasks[sourceColumnId] = newTasks[sourceColumnId].filter(t => t.id !== task.id);
-    
-    // Add to target column with updated status
     const updatedTask = { ...task, status: targetColumnId };
     newTasks[targetColumnId] = [...newTasks[targetColumnId], updatedTask];
-    
-    // Update on server
+    setTasks(newTasks);
+    // Backend update
     updateTaskOnServer(task.id, { status: targetColumnId })
       .catch(error => {
-        console.error('Error updating task status:', error);
-        // Revert state on error
-        setTasks(tasks);
-        // Alert the user
+        setTasks(tasks); // revert
         alert(`Failed to update task status: ${error.message}`);
       });
   };
@@ -3480,6 +3472,7 @@ export const ProjectDashboard = () => {
               {/* Kanban Board with Framer Motion */}
               <div className="kanban-board">
                 <KanbanColumn
+                  ref={columnRefs['not-started']}
                   title="Not Yet Started"
                   status="not-started"
                   tasks={tasks["not-started"]}
@@ -3487,8 +3480,10 @@ export const ProjectDashboard = () => {
                   onDeleteTask={handleDeleteTask}
                   onDragEnd={handleTaskDragEnd}
                   color={columnColors['not-started']}
+                  columnColor={columnColors['not-started']}
                 />
                 <KanbanColumn
+                  ref={columnRefs['in-progress']}
                   title="In Progress"
                   status="in-progress"
                   tasks={tasks["in-progress"]}
@@ -3496,8 +3491,10 @@ export const ProjectDashboard = () => {
                   onDeleteTask={handleDeleteTask}
                   onDragEnd={handleTaskDragEnd}
                   color={columnColors['in-progress']}
+                  columnColor={columnColors['in-progress']}
                 />
                 <KanbanColumn
+                  ref={columnRefs['completed']}
                   title="Completed"
                   status="completed"
                   tasks={tasks["completed"]}
@@ -3505,6 +3502,7 @@ export const ProjectDashboard = () => {
                   onDeleteTask={handleDeleteTask}
                   onDragEnd={handleTaskDragEnd}
                   color={columnColors['completed']}
+                  columnColor={columnColors['completed']}
                 />
               </div>
 
