@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Header } from './Header';
 import { FontAwesomeIcon } from '../fontawesome';
+import config from '../config';
 import { 
   faProjectDiagram, 
   faFolderOpen, 
@@ -60,6 +61,8 @@ const ImageWithBase64 = memo(({ src, alt, className, apiUrl }) => {
                         setIsLoading(false);
                     }
                 };
+
+                
                 
                 reader.readAsDataURL(blob);
             } catch (error) {
@@ -127,7 +130,7 @@ const DiscussionDetail = () => {
     const [selectedImages, setSelectedImages] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
     
-    const API_URL = process.env.REACT_APP_DIRECT_API_URL || 'http://localhost:5000';
+    const API_URL = config.API_BASE_URL || 'http://localhost:5000';
     
     useEffect(() => {
         fetchDiscussion();
