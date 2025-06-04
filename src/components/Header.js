@@ -14,7 +14,7 @@ export const Header = () => {
     };
 
     const handleUsernameClick = () => {
-        setIsProfileModalOpen(true);
+        navigate('/main/profile');
     };
 
     return (

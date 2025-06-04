@@ -20,7 +20,7 @@ const authenticate = (req, res, next) => {
 // Update user (username and/or password)
 router.put('/:id', authenticate, async (req, res) => {
     const { id } = req.params;
-    const { username, password } = req.body;
+    const { username, password, name, email, age, photo, techStack } = req.body;
     try {
         // Only allow user to update their own account
         if (req.user.userId !== id) {
@@ -40,8 +40,27 @@ router.put('/:id', authenticate, async (req, res) => {
             const hashed = await bcrypt.hash(password, 10);
             user.password = hashed;
         }
+        
+        // Update profile fields if provided
+        if (name !== undefined) user.name = name;
+        if (email !== undefined) user.email = email;
+        if (age !== undefined) user.age = age;
+        if (photo !== undefined) user.photo = photo;
+        if (techStack !== undefined) user.techStack = techStack;
+        
         await user.save();
-        res.json({ message: 'User updated', username: user.username });
+        res.json({ 
+            message: 'User updated', 
+            user: {
+                username: user.username,
+                name: user.name,
+                email: user.email,
+                age: user.age,
+                photo: user.photo,
+                rating: user.rating,
+                techStack: user.techStack
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error updating user', error: error.message });
     }
@@ -63,6 +82,17 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 });
 
+// Get user profile
+router.get('/profile', authenticate, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select('-password');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching user profile', error: error.message });
+    }
+});
+
 // Search users by username (case-insensitive, partial match)
 router.get('/search', authenticate, async (req, res) => {
     const { query } = req.query;
@@ -80,4 +110,4 @@ router.get('/search', authenticate, async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;
